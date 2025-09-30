@@ -1,0 +1,22 @@
+[
+  {
+    "clientName": "Marvin",
+    "consoleType": "Play Station 5",
+    "consoleNumber": 1,
+    "totalPrice": 25,
+    "startDate": "2025-09-24T14:00:00.000Z",
+    "endDate": "2025-09-24T14:30:00.000Z",
+    "action": "detener",
+    "fromConsole": null
+  },
+  {
+    "clientName": "Ana",
+    "consoleType": "Switch",
+    "consoleNumber": 2,
+    "totalPrice": 15,
+    "startDate": "2025-09-25T16:00:00.000Z",
+    "endDate": "2025-09-25T16:30:00.000Z",
+    "action": "detener",
+    "fromConsole": null
+  }
+]
