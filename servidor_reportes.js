@@ -1,7 +1,4 @@
-// Ruta raíz para comprobar que el backend está vivo
-app.get('/', (req, res) => {
-  res.send('API Zonagamer Backend funcionando');
-});
+
 // Backend mínimo para exponer acciones.json como API pública
 const express = require('express');
 const fs = require('fs');
@@ -11,6 +8,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 const PORT = process.env.PORT || 3001;
+
+// Ruta raíz para comprobar que el backend está vivo
+app.get('/', (req, res) => {
+  res.send('API Zonagamer Backend funcionando');
+});
 
 // Endpoint para recibir y guardar acciones nuevas
 // Solo acepta el POST pero no guarda nada (para pruebas en Render)
