@@ -1,3 +1,26 @@
+// --- Manejo de sesión persistente ---
+app.get('/session', (req, res) => {
+  const datos = leerDatos();
+  res.json(datos.session || null);
+});
+app.post('/session', (req, res) => {
+  const { username } = req.body;
+  const datos = leerDatos();
+  const user = datos.users.find(u => u.username === username && u.role === 'admin');
+  if (user) {
+    datos.session = { username: user.username, role: user.role };
+    guardarDatos(datos);
+    res.json({ ok: true, session: datos.session });
+  } else {
+    res.status(401).json({ ok: false, error: 'Usuario no válido' });
+  }
+});
+app.delete('/session', (req, res) => {
+  const datos = leerDatos();
+  datos.session = null;
+  guardarDatos(datos);
+  res.json({ ok: true });
+});
 
 // Backend mínimo para exponer acciones.json como API pública
 const express = require('express');
