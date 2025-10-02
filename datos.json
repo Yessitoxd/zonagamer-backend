@@ -1,7 +1,14 @@
 {
   "consoles": [],
   "prices": { "ps5": {}, "switch": {} },
-  "employees": [],
+  "employees": [
+    {
+      "username": "Marvin",
+      "password": "zonagamer",
+      "role": "trabajador",
+      "dailyPay": 200
+    }
+  ],
   "sessions": [],
   "workDays": {},
   "users": [
