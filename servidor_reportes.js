@@ -8,46 +8,42 @@ app.use(cors());
 app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
-// Utilidad para leer y guardar datos.json
-function leerDatos() {
-  try {
-    const datos = JSON.parse(fs.readFileSync(__dirname + '/datos.json', 'utf8'));
-    // Asegurar que session exista
-    if (typeof datos.session === 'undefined') datos.session = null;
-    return datos;
-  } catch (e) {
-    return { consoles: [], prices: { ps5: {}, switch: {} }, employees: [], sessions: [], workDays: {}, users: [], session: null };
-  }
+// Utilidades para leer y guardar archivos JSON individuales
+const dataDir = __dirname + '/data';
+function readJson(file) {
+  const filePath = `${dataDir}/${file}`;
+  if (!fs.existsSync(filePath)) return [];
+  const content = fs.readFileSync(filePath, 'utf8');
+  return content ? JSON.parse(content) : [];
 }
-function guardarDatos(datos) {
-  fs.writeFileSync(__dirname + '/datos.json', JSON.stringify(datos, null, 2));
+function writeJson(file, data) {
+  const filePath = `${dataDir}/${file}`;
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
 // --- Manejo de sesión persistente ---
+let session = null;
 app.get('/session', (req, res) => {
-  const datos = leerDatos();
-  if (typeof datos.session === 'undefined') {
-    datos.session = null;
-    guardarDatos(datos);
-  }
-  res.json({ session: datos.session });
+  res.json(session ? { username: session.username, role: session.role } : {});
 });
 app.post('/session', (req, res) => {
-  const { username } = req.body;
-  const datos = leerDatos();
-  const user = datos.users.find(u => u.username === username && u.role === 'admin');
+  const { username, role } = req.body;
+  let users = [];
+  if (role === 'admin') {
+    users = readJson('admins.json');
+  } else if (role === 'trabajador') {
+    users = readJson('employees.json');
+  }
+  const user = users.find(u => u.username === username);
   if (user) {
-    datos.session = { username: user.username, role: user.role };
-    guardarDatos(datos);
-    res.json({ ok: true, session: datos.session });
+    session = { username: user.username, role: user.role };
+    res.json({ ok: true, session });
   } else {
     res.status(401).json({ ok: false, error: 'Usuario no válido' });
   }
 });
 app.delete('/session', (req, res) => {
-  const datos = leerDatos();
-  datos.session = null;
-  guardarDatos(datos);
+  session = null;
   res.json({ ok: true });
 });
 
@@ -55,9 +51,6 @@ app.delete('/session', (req, res) => {
 app.get('/', (req, res) => {
   res.send('API Zonagamer Backend funcionando');
 });
-
-
-// Utilidad para leer y guardar datos.json
 function leerDatos() {
   try {
     const datos = JSON.parse(fs.readFileSync(__dirname + '/datos.json', 'utf8'));
@@ -73,76 +66,49 @@ function guardarDatos(datos) {
 }
 
 // Endpoints REST para cada entidad
-app.get('/consoles', (req, res) => {
-  res.json(leerDatos().consoles);
+app.get('/admins', (req, res) => {
+  res.json(readJson('admins.json'));
 });
-app.post('/consoles', (req, res) => {
-  const datos = leerDatos();
-  datos.consoles.push(req.body);
-  guardarDatos(datos);
-  res.json({ ok: true });
-});
-app.put('/consoles', (req, res) => {
-  const datos = leerDatos();
-  datos.consoles = req.body;
-  guardarDatos(datos);
-  res.json({ ok: true });
-});
-
-app.get('/prices', (req, res) => {
-  res.json(leerDatos().prices);
-});
-app.put('/prices', (req, res) => {
-  const datos = leerDatos();
-  datos.prices = req.body;
-  guardarDatos(datos);
+app.put('/admins', (req, res) => {
+  writeJson('admins.json', req.body);
   res.json({ ok: true });
 });
 
 app.get('/employees', (req, res) => {
-  res.json(leerDatos().employees);
+  res.json(readJson('employees.json'));
 });
-// Eliminadas rutas para añadir/modificar empleados, ahora se gestionan manualmente en datos.json
+app.put('/employees', (req, res) => {
+  writeJson('employees.json', req.body);
+  res.json({ ok: true });
+});
+
+app.get('/consoles', (req, res) => {
+  res.json(readJson('consoles.json'));
+});
+app.put('/consoles', (req, res) => {
+  writeJson('consoles.json', req.body);
+  res.json({ ok: true });
+});
+
+app.get('/prices', (req, res) => {
+  res.json(readJson('prices.json'));
+});
+app.put('/prices', (req, res) => {
+  writeJson('prices.json', req.body);
+  res.json({ ok: true });
+});
 
 app.get('/sessions', (req, res) => {
-  res.json(leerDatos().sessions);
+  res.json(readJson('sessions.json'));
 });
 app.post('/sessions', (req, res) => {
-  const datos = leerDatos();
-  datos.sessions.push(req.body);
-  guardarDatos(datos);
+  const sessions = readJson('sessions.json');
+  sessions.push(req.body);
+  writeJson('sessions.json', sessions);
   res.json({ ok: true });
 });
 app.put('/sessions', (req, res) => {
-  const datos = leerDatos();
-  datos.sessions = req.body;
-  guardarDatos(datos);
-  res.json({ ok: true });
-});
-
-app.get('/workdays', (req, res) => {
-  res.json(leerDatos().workDays);
-});
-app.put('/workdays', (req, res) => {
-  const datos = leerDatos();
-  datos.workDays = req.body;
-  guardarDatos(datos);
-  res.json({ ok: true });
-});
-
-app.get('/users', (req, res) => {
-  res.json(leerDatos().users);
-});
-app.post('/users', (req, res) => {
-  const datos = leerDatos();
-  datos.users.push(req.body);
-  guardarDatos(datos);
-  res.json({ ok: true });
-});
-app.put('/users', (req, res) => {
-  const datos = leerDatos();
-  datos.users = req.body;
-  guardarDatos(datos);
+  writeJson('sessions.json', req.body);
   res.json({ ok: true });
 });
 
@@ -152,9 +118,9 @@ app.post('/accion', (req, res) => {
   if (!nuevaAccion || !nuevaAccion.startDate) {
     return res.status(400).json({ error: 'Acción inválida' });
   }
-  const datos = leerDatos();
-  datos.sessions.push(nuevaAccion);
-  guardarDatos(datos);
+  const sessions = readJson('sessions.json');
+  sessions.push(nuevaAccion);
+  writeJson('sessions.json', sessions);
   res.json({ ok: true, msg: 'Acción guardada en la nube' });
 });
 
