@@ -56,7 +56,6 @@ function leerDatos() {
     const datos = JSON.parse(fs.readFileSync(__dirname + '/datos.json', 'utf8'));
     // Asegurar que session exista
     if (typeof datos.session === 'undefined') datos.session = null;
-    return datos;
   } catch (e) {
     return { consoles: [], prices: { ps5: {}, switch: {} }, employees: [], sessions: [], workDays: {}, users: [], session: null };
   }
@@ -68,18 +67,6 @@ function guardarDatos(datos) {
 // Endpoints REST para cada entidad
 app.get('/admins', (req, res) => {
   res.json(readJson('admins.json'));
-});
-app.put('/admins', (req, res) => {
-  writeJson('admins.json', req.body);
-  res.json({ ok: true });
-});
-
-app.get('/employees', (req, res) => {
-  res.json(readJson('employees.json'));
-});
-app.put('/employees', (req, res) => {
-  writeJson('employees.json', req.body);
-  res.json({ ok: true });
 });
 
 app.get('/consoles', (req, res) => {
@@ -95,20 +82,6 @@ app.get('/prices', (req, res) => {
 });
 app.put('/prices', (req, res) => {
   writeJson('prices.json', req.body);
-  res.json({ ok: true });
-});
-
-app.get('/sessions', (req, res) => {
-  res.json(readJson('sessions.json'));
-});
-app.post('/sessions', (req, res) => {
-  const sessions = readJson('sessions.json');
-  sessions.push(req.body);
-  writeJson('sessions.json', sessions);
-  res.json({ ok: true });
-});
-app.put('/sessions', (req, res) => {
-  writeJson('sessions.json', req.body);
   res.json({ ok: true });
 });
 
