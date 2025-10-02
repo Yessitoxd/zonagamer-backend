@@ -1,7 +1,22 @@
+// Backend mínimo para exponer acciones.json como API pública
+const express = require('express');
+const fs = require('fs');
+const cors = require('cors');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+const PORT = process.env.PORT || 3001;
+
 // --- Manejo de sesión persistente ---
 app.get('/session', (req, res) => {
   const datos = leerDatos();
-  res.json(datos.session || null);
+  // Si no existe la propiedad session, inicializarla en null
+  if (typeof datos.session === 'undefined') {
+    datos.session = null;
+    guardarDatos(datos);
+  }
+  res.json({ session: datos.session });
 });
 app.post('/session', (req, res) => {
   const { username } = req.body;
@@ -22,16 +37,6 @@ app.delete('/session', (req, res) => {
   res.json({ ok: true });
 });
 
-// Backend mínimo para exponer acciones.json como API pública
-const express = require('express');
-const fs = require('fs');
-const cors = require('cors');
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-const PORT = process.env.PORT || 3001;
-
 // Ruta raíz para comprobar que el backend está vivo
 app.get('/', (req, res) => {
   res.send('API Zonagamer Backend funcionando');
@@ -41,9 +46,12 @@ app.get('/', (req, res) => {
 // Utilidad para leer y guardar datos.json
 function leerDatos() {
   try {
-    return JSON.parse(fs.readFileSync(__dirname + '/datos.json', 'utf8'));
+    const datos = JSON.parse(fs.readFileSync(__dirname + '/datos.json', 'utf8'));
+    // Asegurar que session exista
+    if (typeof datos.session === 'undefined') datos.session = null;
+    return datos;
   } catch (e) {
-    return { consoles: [], prices: { ps5: {}, switch: {} }, employees: [], sessions: [], workDays: {}, users: [] };
+    return { consoles: [], prices: { ps5: {}, switch: {} }, employees: [], sessions: [], workDays: {}, users: [], session: null };
   }
 }
 function guardarDatos(datos) {
