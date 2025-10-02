@@ -8,10 +8,24 @@ app.use(cors());
 app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
+// Utilidad para leer y guardar datos.json
+function leerDatos() {
+  try {
+    const datos = JSON.parse(fs.readFileSync(__dirname + '/datos.json', 'utf8'));
+    // Asegurar que session exista
+    if (typeof datos.session === 'undefined') datos.session = null;
+    return datos;
+  } catch (e) {
+    return { consoles: [], prices: { ps5: {}, switch: {} }, employees: [], sessions: [], workDays: {}, users: [], session: null };
+  }
+}
+function guardarDatos(datos) {
+  fs.writeFileSync(__dirname + '/datos.json', JSON.stringify(datos, null, 2));
+}
+
 // --- Manejo de sesión persistente ---
 app.get('/session', (req, res) => {
   const datos = leerDatos();
-  // Si no existe la propiedad session, inicializarla en null
   if (typeof datos.session === 'undefined') {
     datos.session = null;
     guardarDatos(datos);
@@ -88,18 +102,7 @@ app.put('/prices', (req, res) => {
 app.get('/employees', (req, res) => {
   res.json(leerDatos().employees);
 });
-app.post('/employees', (req, res) => {
-  const datos = leerDatos();
-  datos.employees.push(req.body);
-  guardarDatos(datos);
-  res.json({ ok: true });
-});
-app.put('/employees', (req, res) => {
-  const datos = leerDatos();
-  datos.employees = req.body;
-  guardarDatos(datos);
-  res.json({ ok: true });
-});
+// Eliminadas rutas para añadir/modificar empleados, ahora se gestionan manualmente en datos.json
 
 app.get('/sessions', (req, res) => {
   res.json(leerDatos().sessions);
