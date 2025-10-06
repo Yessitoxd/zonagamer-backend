@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 // Backend mínimo para exponer acciones.json como API pública
 const express = require('express');
 const fs = require('fs');
@@ -51,6 +52,79 @@ app.delete('/session', (req, res) => {
 app.get('/', (req, res) => {
   res.send('API Zonagamer Backend funcionando');
 });
+// Conexión a MongoDB Atlas
+mongoose.connect('mongodb+srv://yesseiramartinez_db_user:NXp6YuexAdXAROrj@cluster0.uuwrtvt.mongodb.net/zonagamer?retryWrites=true&w=majority&appName=Cluster0', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('Conectado a MongoDB Atlas'))
+.catch(err => console.error('Error de conexión:', err));
+
+// Modelo Admins
+// Modelo Consoles
+// Modelo Prices
+// Modelo Employees
+// Modelo Sessions
+const sessionSchema = new mongoose.Schema({
+  clientName: String,
+  consoleType: String,
+  consoleNumber: Number,
+  startDate: String,
+  endDate: String,
+  totalPrice: Number,
+  durationSeconds: Number,
+  action: String,
+  fromConsole: String,
+  comment: String
+});
+const Session = mongoose.model('Session', sessionSchema);
+const employeeSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, default: 'trabajador' },
+  dailyPay: { type: Number, default: 0 },
+  totalPaid: { type: Number, default: 0 }
+});
+const Employee = mongoose.model('Employee', employeeSchema);
+// Endpoint Employees
+app.get('/employees', (req, res) => {
+  Employee.find({})
+    .then(employees => res.json(employees))
+    .catch(err => {
+      console.error('Error al leer empleados desde MongoDB:', err);
+      res.status(500).json({ error: 'Error al leer empleados desde MongoDB' });
+    });
+});
+
+app.put('/employees', (req, res) => {
+  // Actualizar todos los empleados (sobrescribe)
+  Employee.deleteMany({})
+    .then(() => Employee.insertMany(req.body))
+    .then(() => res.json({ ok: true }))
+    .catch(err => {
+      console.error('Error al guardar empleados en MongoDB:', err);
+      res.status(500).json({ error: 'Error al guardar empleados en MongoDB' });
+    });
+});
+const priceSchema = new mongoose.Schema({
+  console: { type: String, required: true },
+  duration: { type: Number },
+  price: { type: Number, required: true }
+});
+const Price = mongoose.model('Price', priceSchema);
+const consoleSchema = new mongoose.Schema({
+  type: { type: String, required: true },
+  number: { type: Number, required: true, unique: true },
+  name: { type: String, required: true },
+  img: { type: String }
+});
+const Console = mongoose.model('Console', consoleSchema);
+const adminSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, default: 'admin' }
+});
+const Admin = mongoose.model('Admin', adminSchema);
 function leerDatos() {
   try {
     const datos = JSON.parse(fs.readFileSync(__dirname + '/datos.json', 'utf8'));
@@ -66,23 +140,50 @@ function guardarDatos(datos) {
 
 // Endpoints REST para cada entidad
 app.get('/admins', (req, res) => {
-  res.json(readJson('admins.json'));
+  Admin.find({})
+    .then(admins => res.json(admins))
+    .catch(err => {
+      console.error('Error al leer admins desde MongoDB:', err);
+      res.status(500).json({ error: 'Error al leer admins desde MongoDB' });
+    });
 });
 
 app.get('/consoles', (req, res) => {
-  res.json(readJson('consoles.json'));
+  Console.find({})
+    .then(consoles => res.json(consoles))
+    .catch(err => {
+      console.error('Error al leer consolas desde MongoDB:', err);
+      res.status(500).json({ error: 'Error al leer consolas desde MongoDB' });
+    });
 });
 app.put('/consoles', (req, res) => {
-  writeJson('consoles.json', req.body);
-  res.json({ ok: true });
+  // Actualizar todas las consolas (sobrescribe)
+  Console.deleteMany({})
+    .then(() => Console.insertMany(req.body))
+    .then(() => res.json({ ok: true }))
+    .catch(err => {
+      console.error('Error al guardar consolas en MongoDB:', err);
+      res.status(500).json({ error: 'Error al guardar consolas en MongoDB' });
+    });
 });
 
 app.get('/prices', (req, res) => {
-  res.json(readJson('prices.json'));
+  Price.find({})
+    .then(prices => res.json(prices))
+    .catch(err => {
+      console.error('Error al leer precios desde MongoDB:', err);
+      res.status(500).json({ error: 'Error al leer precios desde MongoDB' });
+    });
 });
 app.put('/prices', (req, res) => {
-  writeJson('prices.json', req.body);
-  res.json({ ok: true });
+  // Actualizar todos los precios (sobrescribe)
+  Price.deleteMany({})
+    .then(() => Price.insertMany(req.body))
+    .then(() => res.json({ ok: true }))
+    .catch(err => {
+      console.error('Error al guardar precios en MongoDB:', err);
+      res.status(500).json({ error: 'Error al guardar precios en MongoDB' });
+    });
 });
 
 // Endpoint para recibir y guardar acciones nuevas (sesiones)
@@ -91,19 +192,23 @@ app.post('/accion', (req, res) => {
   if (!nuevaAccion || !nuevaAccion.startDate) {
     return res.status(400).json({ error: 'Acción inválida' });
   }
-  const sessions = readJson('sessions.json');
-  sessions.push(nuevaAccion);
-  writeJson('sessions.json', sessions);
-  res.json({ ok: true, msg: 'Acción guardada en la nube' });
+  const session = new Session(nuevaAccion);
+  session.save()
+    .then(() => res.json({ ok: true, msg: 'Acción guardada en MongoDB' }))
+    .catch(err => {
+      console.error('Error al guardar sesión en MongoDB:', err);
+      res.status(500).json({ error: 'Error al guardar sesión en MongoDB' });
+    });
 });
 
 // Endpoint para obtener todas las acciones en JSON
 app.get('/acciones', (req, res) => {
-  let acciones = [];
-  try {
-    acciones = require('./acciones.json');
-  } catch (e) {}
-  res.json(acciones);
+  Session.find({})
+    .then(sessions => res.json(sessions))
+    .catch(err => {
+      console.error('Error al leer sesiones desde MongoDB:', err);
+      res.status(500).json({ error: 'Error al leer sesiones desde MongoDB' });
+    });
 });
 
 // Solo debe haber un app.listen al final del archivo
