@@ -156,6 +156,29 @@ app.get('/consoles', (req, res) => {
       res.status(500).json({ error: 'Error al leer consolas desde MongoDB' });
     });
 });
+// Endpoint para añadir una consola (POST)
+app.post('/consoles', async (req, res) => {
+  try {
+    const { type, number } = req.body;
+    if (!type || !number) {
+      return res.status(400).json({ message: 'Faltan datos requeridos.' });
+    }
+    // Validar que no exista una consola con ese número
+    const existe = await Console.findOne({ number });
+    if (existe) {
+      return res.status(400).json({ message: 'Ya existe una consola con ese número.' });
+    }
+    // Crear nombre e imagen automáticamente
+    let name = type === 'ps5' ? 'Play Station 5' : (type === 'switch' ? 'Nintendo Switch' : type);
+    let img = type === 'ps5' ? 'PS5.png' : (type === 'switch' ? 'Switch.png' : '');
+    const nuevaConsola = new Console({ type, number, name, img });
+    await nuevaConsola.save();
+    res.status(201).json({ message: 'Consola añadida correctamente.' });
+  } catch (err) {
+    console.error('Error al añadir consola:', err);
+    res.status(500).json({ message: 'Error al añadir consola.' });
+  }
+});
 app.put('/consoles', (req, res) => {
   // Actualizar todas las consolas (sobrescribe)
   Console.deleteMany({})
