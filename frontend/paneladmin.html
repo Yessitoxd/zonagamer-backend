@@ -360,22 +360,25 @@
                 </div>
                 <div id="mainbox-session-consolas" class="mainbox-session" style="display:none;">
                     <h2>Añadir Consolas</h2>
-                    <form id="addConsoleForm" style="margin-top:24px;max-width:340px;">
-                        <div class="input-group">
-                            <label for="consoleType">Consola</label>
-                            <select id="consoleType" name="consoleType" required class="neon-select">
-                                <option value="">Selecciona una consola</option>
-                                <option value="ps5">Play Station 5</option>
-                                <option value="switch">Nintendo Switch</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label for="consoleNumber">Número de consola</label>
-                            <input type="number" id="consoleNumber" name="consoleNumber" min="1" required placeholder="Ej: 1" class="neon-input">
-                        </div>
-                        <button type="submit" class="neon-btn">Añadir consola</button>
-                        <p id="addConsoleMsg" class="error-message" style="margin-top:10px;"></p>
-                    </form>
+                    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start;">
+                        <form id="addConsoleForm" style="margin-top:24px;max-width:340px;min-width:220px;flex:1;">
+                            <div class="input-group">
+                                <label for="consoleType">Consola</label>
+                                <select id="consoleType" name="consoleType" required class="neon-select">
+                                    <option value="">Selecciona una consola</option>
+                                    <option value="ps5">Play Station 5</option>
+                                    <option value="switch">Nintendo Switch</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="consoleNumber">Número de consola</label>
+                                <input type="number" id="consoleNumber" name="consoleNumber" min="1" required placeholder="Ej: 1" class="neon-input">
+                            </div>
+                            <button type="submit" class="neon-btn">Añadir consola</button>
+                            <p id="addConsoleMsg" class="error-message" style="margin-top:10px;"></p>
+                        </form>
+                        <div id="miniConsolesList" style="flex:2;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;min-width:180px;"></div>
+                    </div>
                 </div>
                 <div id="mainbox-session-precios" class="mainbox-session" style="display:none;">
                     <h2>Añadir Precios</h2>
@@ -385,7 +388,7 @@
         </div>
     </div>
     <script>
-        // Mostrar consolas en tarjetas en Reporte General
+        // Mostrar consolas en tarjetas en Reporte General (sin editar/eliminar)
         async function renderConsolesList() {
             const list = document.getElementById('consolesList');
             if (!list) return;
@@ -399,33 +402,64 @@
                 }
                 // Ordenar por número
                 consolas.sort((a, b) => a.number - b.number);
-                list.innerHTML = consolas.map((c, idx) => {
+                list.innerHTML = consolas.map((c) => {
                     let nombre = c.type === 'ps5' ? 'Play Station 5' : (c.type === 'switch' ? 'Nintendo Switch' : c.type);
                     let img = c.type === 'ps5' ? 'PS5.png' : (c.type === 'switch' ? 'Switch.png' : '');
                     return `<div class="console-card-admin" style="background:rgba(44,18,80,0.95);border:2px solid #81fde9;border-radius:16px;padding:18px 18px 12px 18px;min-width:210px;max-width:220px;display:flex;flex-direction:column;align-items:center;box-shadow:0 0 8px #3ef2e6;position:relative;">
                         ${img ? `<img src='${img}' alt='${nombre}' style='width:80px;height:auto;margin-bottom:10px;'>` : ''}
                         <div style='font-weight:700;font-size:18px;color:#81fde9;margin-bottom:4px;'>${nombre} <span style="color:#fff;font-size:15px;">#${c.number}</span></div>
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                list.innerHTML = '<div style="color:#fff;opacity:0.7;">Error al cargar consolas.</div>';
+            }
+        }
+
+        // Mostrar minitarjetas de consolas en sección Añadir Consolas
+        async function renderMiniConsolesList() {
+            const miniList = document.getElementById('miniConsolesList');
+            if (!miniList) return;
+            miniList.innerHTML = '<div style="color:#fff;opacity:0.7;">Cargando consolas...</div>';
+            try {
+                const res = await fetch('https://zonagamer-backend.onrender.com/consoles');
+                const consolas = await res.json();
+                if (!Array.isArray(consolas) || consolas.length === 0) {
+                    miniList.innerHTML = '<div style="color:#fff;opacity:0.7;">No hay consolas registradas.</div>';
+                    return;
+                }
+                // Filtrar solo consolas con _id válido (24 caracteres hex)
+                const consolasValidas = consolas.filter(c => typeof c._id === 'string' && /^[a-fA-F0-9]{24}$/.test(c._id));
+                consolasValidas.sort((a, b) => a.number - b.number);
+                if (consolasValidas.length === 0) {
+                    miniList.innerHTML = '<div style="color:#ff4d4d;opacity:0.85;">No hay consolas válidas para editar/eliminar.<br>Revisa los datos en la base.</div>';
+                    return;
+                }
+                miniList.innerHTML = consolasValidas.map((c) => {
+                    let nombre = c.type === 'ps5' ? 'PS5' : (c.type === 'switch' ? 'Switch' : c.type);
+                    return `<div style="background:rgba(44,18,80,0.96);border:2px solid #81fde9;border-radius:12px;padding:14px 20px 12px 20px;min-width:120px;max-width:160px;display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:10px;">
+                        <div style='font-weight:700;font-size:18px;color:#fff;'>${nombre}</div>
+                        <div style="color:#fff;font-size:15px;">#${c.number}</div>
                         <div style="display:flex;gap:10px;margin-top:8px;">
-                            <button class="edit-console-btn neon-btn" data-idx="${idx}" style="padding:6px 14px;font-size:15px;">Editar</button>
-                            <button class="delete-console-btn neon-btn" data-idx="${idx}" style="padding:6px 14px;font-size:15px;background:#ff4d4d;border-color:#ff4d4d;box-shadow:0 0 8px #ff4d4d,0 0 16px #ff4d4d;">Eliminar</button>
+                            <button class="mini-edit-btn" data-id="${c._id}" style="padding:4px 14px;font-size:15px;border-radius:7px;border:1.5px solid #81fde9;background:#2a114d;color:#81fde9;cursor:pointer;">Editar</button>
+                            <button class="mini-del-btn" data-id="${c._id}" style="padding:4px 14px;font-size:15px;border-radius:7px;border:1.5px solid #ff4d4d;background:#2a114d;color:#ff4d4d;cursor:pointer;">Eliminar</button>
                         </div>
                     </div>`;
                 }).join('');
-
-                // Botones de editar/eliminar
-                document.querySelectorAll('.edit-console-btn').forEach(btn => {
+                // Botones editar/eliminar
+                document.querySelectorAll('.mini-edit-btn').forEach(btn => {
                     btn.onclick = function() {
-                        const idx = parseInt(this.dataset.idx);
-                        showEditConsoleModal(consolas[idx]);
+                        const id = this.dataset.id;
+                        const consola = consolasValidas.find(c => c._id === id);
+                        if (consola) showEditConsoleModal(consola);
                     };
                 });
-                document.querySelectorAll('.delete-console-btn').forEach(btn => {
+                document.querySelectorAll('.mini-del-btn').forEach(btn => {
                     btn.onclick = async function() {
-                        const idx = parseInt(this.dataset.idx);
+                        const id = this.dataset.id;
                         if (confirm('¿Seguro que deseas eliminar esta consola?')) {
-                            const delRes = await fetch('https://zonagamer-backend.onrender.com/consoles/' + consolas[idx]._id, { method: 'DELETE' });
+                            const delRes = await fetch('https://zonagamer-backend.onrender.com/consoles/' + id, { method: 'DELETE' });
                             if (delRes.ok) {
-                                renderConsolesList();
+                                renderMiniConsolesList();
                             } else {
                                 alert('Error al eliminar consola.');
                             }
@@ -433,73 +467,78 @@
                     };
                 });
             } catch (err) {
-                list.innerHTML = '<div style="color:#fff;opacity:0.7;">Error al cargar consolas.</div>';
+                miniList.innerHTML = '<div style="color:#fff;opacity:0.7;">Error al cargar consolas.</div>';
             }
         }
 
         // Modal de edición de consola
-        function showEditConsoleModal(consola) {
-            // Obtener username admin
-            const username = document.getElementById('adminUsername')?.value || 'Admin';
-            let modal = document.createElement('div');
-            modal.id = 'editConsoleModal';
-            modal.innerHTML = `
-                <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(20,10,40,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;">
-                  <div style="background:linear-gradient(135deg,#2a114d 0%,#3b1d69 100%);border:2.5px solid #81fde9;border-radius:22px;box-shadow:0 0 32px #3ef2e6,0 0 64px #81fde9;padding:36px 32px 28px 32px;min-width:320px;max-width:95vw;display:flex;flex-direction:column;align-items:center;">
-                    <div style="font-size:20px;font-weight:700;color:#81fde9;margin-bottom:18px;text-align:center;">${username}, ¿cómo deseas editar esta consola?</div>
-                    <form id="editConsoleForm" style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:18px;">
-                      <div class="input-group">
-                        <label for="editConsoleType">Tipo de consola</label>
-                        <select id="editConsoleType" class="neon-select" required>
-                          <option value="ps5" ${consola.type==='ps5'?'selected':''}>Play Station 5</option>
-                          <option value="switch" ${consola.type==='switch'?'selected':''}>Nintendo Switch</option>
-                        </select>
-                      </div>
-                      <div class="input-group">
-                        <label for="editConsoleNumber">Número de consola</label>
-                        <input type="number" id="editConsoleNumber" class="neon-input" min="1" required value="${consola.number}">
-                      </div>
-                      <div style="display:flex;gap:16px;justify-content:center;">
-                        <button type="submit" class="neon-btn" style="min-width:110px;">Confirmar</button>
-                        <button type="button" id="cancelEditConsole" class="neon-btn" style="background:#ff4d4d;border-color:#ff4d4d;box-shadow:0 0 8px #ff4d4d,0 0 16px #ff4d4d;min-width:110px;">Cancelar</button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            document.getElementById('cancelEditConsole').onclick = () => {
-                modal.remove();
-            };
-            document.getElementById('editConsoleForm').onsubmit = async function(e) {
-                e.preventDefault();
-                const type = document.getElementById('editConsoleType').value;
-                const number = parseInt(document.getElementById('editConsoleNumber').value, 10);
-                // Validar número
-                if (!type || !number || number < 1) {
-                    alert('Completa todos los campos correctamente.');
-                    return;
+                function showEditConsoleModal(consola) {
+                        // Obtener username admin
+                        const username = document.getElementById('adminUsername')?.value || 'Admin';
+                        let modal = document.createElement('div');
+                        modal.id = 'editConsoleModal';
+                        modal.innerHTML = `
+                                <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(20,10,40,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;">
+                                    <div style="background:linear-gradient(135deg,#2a114d 0%,#3b1d69 100%);border:2.5px solid #81fde9;border-radius:22px;box-shadow:0 0 32px #3ef2e6,0 0 64px #81fde9;padding:36px 32px 28px 32px;min-width:320px;max-width:95vw;display:flex;flex-direction:column;align-items:center;">
+                                        <div style=\"font-size:20px;font-weight:700;color:#fff;margin-bottom:18px;text-align:center;\">${username}, ¿cómo deseas editar esta consola?</div>
+                                        <form id=\"editConsoleForm\" style=\"width:100%;max-width:320px;display:flex;flex-direction:column;gap:18px;background:none;box-shadow:none;padding:0;\">
+                                            <div class=\"input-group\" style=\"margin-bottom:10px;\">
+                                                <label for=\"editConsoleType\" style=\"color:#fff;font-weight:500;\">Tipo de consola</label>
+                                                <select id=\"editConsoleType\" required style=\"width:100%;padding:10px;border-radius:8px;font-size:16px;background:#2a114d;color:#fff;border:1.5px solid #bbb;box-shadow:none;outline:none;\">
+                                                    <option value=\"ps5\" ${consola.type==='ps5'?'selected':''}>Play Station 5</option>
+                                                    <option value=\"switch\" ${consola.type==='switch'?'selected':''}>Nintendo Switch</option>
+                                                </select>
+                                            </div>
+                                            <div class=\"input-group\" style=\"margin-bottom:10px;\">
+                                                <label for=\"editConsoleNumber\" style=\"color:#fff;font-weight:500;\">Número de consola</label>
+                                                <input type=\"number\" id=\"editConsoleNumber\" min=\"1\" required value=\"${consola.number}\" style=\"width:100%;padding:10px;border-radius:8px;font-size:16px;background:#2a114d;color:#fff;border:1.5px solid #bbb;box-shadow:none;outline:none;\">
+                                            </div>
+                                            <div style=\"display:flex;gap:16px;justify-content:center;\">
+                                                <button type=\"submit\" style=\"min-width:110px;padding:10px 0;background:#3b1d69;color:#fff;border:1.5px solid #81fde9;border-radius:8px;font-size:16px;font-weight:600;box-shadow:none;cursor:pointer;transition:background 0.2s;\">Confirmar</button>
+                                                <button type=\"button\" id=\"cancelEditConsole\" style=\"min-width:110px;padding:10px 0;background:#444;color:#fff;border:1.5px solid #bbb;border-radius:8px;font-size:16px;font-weight:600;box-shadow:none;cursor:pointer;transition:background 0.2s;\">Cancelar</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                        `;
+                        document.body.appendChild(modal);
+                        document.getElementById('cancelEditConsole').onclick = () => {
+                                modal.remove();
+                        };
+                        document.getElementById('editConsoleForm').onsubmit = async function(e) {
+                                e.preventDefault();
+                                const type = document.getElementById('editConsoleType').value;
+                                const number = parseInt(document.getElementById('editConsoleNumber').value, 10);
+                                // Validar número
+                                if (!type || !number || number < 1) {
+                                        alert('Completa todos los campos correctamente.');
+                                        return;
+                                }
+                                // PUT al backend
+                                const res = await fetch('https://zonagamer-backend.onrender.com/consoles/' + consola._id, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ type, number })
+                                });
+                                if (res.ok) {
+                                        modal.remove();
+                                        renderConsolesList();
+                                } else {
+                                        alert('Error al editar consola.');
+                                }
+                        };
                 }
-                // PUT al backend
-                const res = await fetch('https://zonagamer-backend.onrender.com/consoles/' + consola._id, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type, number })
-                });
-                if (res.ok) {
-                    modal.remove();
-                    renderConsolesList();
-                } else {
-                    alert('Error al editar consola.');
-                }
-            };
-        }
         // Renderizar al mostrar la sección reporte
         document.getElementById('btn-reporte').addEventListener('click', renderConsolesList);
+        // Renderizar minitarjetas al mostrar sección consolas
+        document.getElementById('btn-consolas').addEventListener('click', renderMiniConsolesList);
         // Renderizar al cargar la página si está activa
         document.addEventListener('DOMContentLoaded', function() {
             if (document.getElementById('mainbox-session-reporte').style.display !== 'none') {
                 renderConsolesList();
+            }
+            if (document.getElementById('mainbox-session-consolas').style.display !== 'none') {
+                renderMiniConsolesList();
             }
         });
         // Añadir consola: enviar al backend
@@ -539,6 +578,7 @@
                             msg.style.color = '#81fde9';
                             msg.textContent = 'Consola añadida correctamente.';
                             addConsoleForm.reset();
+                            renderMiniConsolesList();
                         } else {
                             const data = await res.json();
                             msg.textContent = data.message || 'Error al añadir consola.';
