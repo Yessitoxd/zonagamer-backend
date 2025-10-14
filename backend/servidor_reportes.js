@@ -169,6 +169,20 @@ app.put('/consoles/:id', async (req, res) => {
 });
 
 // Eliminar una consola por _id
+app.get('/consoles/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const consola = await Console.findById(id);
+    if (!consola) {
+      return res.status(404).json({ message: 'Consola no encontrada.' });
+    }
+    res.json(consola);
+  } catch (err) {
+    console.error('Error al buscar consola:', err);
+    res.status(500).json({ message: 'Error al buscar consola.' });
+  }
+});
+
 app.delete('/consoles/:id', async (req, res) => {
   try {
     const { id } = req.params;
