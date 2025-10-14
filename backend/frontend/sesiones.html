@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestor de Sesiones</title>
+</head>
+<body>
+    <script>
+        // Este archivo solo existe para manejar la lógica de las sesiones.
+        // No tiene interfaz de usuario.
+        function saveSession(session) {
+            const sessions = JSON.parse(localStorage.getItem('employeeSessions')) || [];
+            sessions.push(session);
+            localStorage.setItem('employeeSessions', JSON.stringify(sessions));
+            return true;
+        }
+
+        function updateEmployeeDebt(earnings, employeeUsername) {
+            let employees = JSON.parse(localStorage.getItem('employees')) || [];
+            const employeeToUpdate = employees.find(emp => emp.username === employeeUsername);
+            if (employeeToUpdate) {
+                if (!employeeToUpdate.debt) {
+                    employeeToUpdate.debt = 0;
+                }
+                employeeToUpdate.debt += earnings;
+                localStorage.setItem('employees', JSON.stringify(employees));
+                return true;
+            }
+            return false;
+        }
+    </script>
+</body>
+</html>

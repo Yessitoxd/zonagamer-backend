@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Empleados</title>
+    <link rel="icon" type="image/jpeg" href="Logo.jpg">
+    <link rel="stylesheet" href="estilos_responsive.css">
+    <style>
+        :root {
+            --main-color: #4d248e;
+            --accent-color: #81fde9;
+            --sidebar-bg: rgba(51, 51, 51, 0.5);
+            --bg-color-transparent: rgba(255, 255, 255, 0.5);
+            --font-color: #f0f0f0;
+            --hover-color: #555;
+            --text-color: #333333;
+            --input-bg: rgba(255, 255, 255, 0.2);
+            --button-bg: #81fde9;
+            --button-text: #4d248e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: var(--main-color);
+            color: var(--font-color);
+            flex-direction: column;
+            overflow: hidden;
+            transition: flex-direction 0.5s ease;
+        }
+
+        .login-container {
+            background: linear-gradient(135deg, rgba(77,36,142,0.8) 0%, rgba(129,253,233,0.7) 100%);
+            padding: 48px 36px 36px 36px;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(77,36,142,0.25), 0 1.5px 8px rgba(129,253,233,0.15);
+            text-align: center;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            width: 100%;
+            max-width: 420px;
+            margin: auto;
+            position: relative;
+            border: 2px solid var(--accent-color);
+            animation: fadeInLogin 0.8s ease;
+        }
+
+        @keyframes fadeInLogin {
+            0% { opacity: 0; transform: scale(0.95) translateY(30px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .login-container h1 {
+            margin-bottom: 24px;
+            font-size: 2.1em;
+            font-weight: 700;
+            color: var(--accent-color);
+            text-shadow: 0 0 8px var(--accent-color), 0 0 2px #fff;
+            letter-spacing: 1px;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: 600;
+            color: var(--accent-color);
+            text-shadow: 0 0 3px var(--accent-color);
+            font-size: 1.08em;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid var(--accent-color);
+            border-radius: 10px;
+            background-color: var(--input-bg);
+            color: var(--font-color);
+            font-size: 1.08em;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            font-family: inherit;
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px var(--accent-color);
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #81fde9 0%, #4d248e 100%);
+            color: #fff;
+            font-size: 1.18em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 2px 8px rgba(77,36,142,0.12);
+            margin-top: 8px;
+        }
+
+        .login-button:hover {
+            background: linear-gradient(90deg, #4d248e 0%, #81fde9 100%);
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 4px 16px rgba(77,36,142,0.18);
+        }
+
+        .error-message {
+            color: #ffcccc;
+            margin-top: 18px;
+            display: none;
+            text-shadow: 0 0 7px #ff0000;
+            font-size: 1.08em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .login-container h1 {
+            margin-bottom: 20px;
+            text-shadow: 0 0 5px var(--accent-color);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            text-shadow: 0 0 3px var(--accent-color);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--accent-color);
+            border-radius: 8px;
+            background-color: var(--input-bg);
+            color: var(--font-color);
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 8px var(--accent-color);
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .login-button:hover {
+            background-color: #a4fff1;
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            color: #ffcccc;
+            margin-top: 15px;
+            display: none;
+            text-shadow: 0 0 5px #ff0000;
+        }
+
+        .main-container {
+            display: none;
+            flex-direction: row;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .username-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-shadow: 0 0 5px var(--accent-color), 0 0 10px var(--accent-color);
+            animation: flicker-text 1.5s infinite alternate;
+            margin: 0;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: var(--sidebar-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(0%);
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+        
+        .transfer-message-global {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            font-size: 2.5em;
+            font-weight: bold;
+            color: white;
+            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+            animation: flicker-text 1.5s infinite alternate;
+            display: none;
+        }
+        
+        .main-content {
+            flex-grow: 1;
+            padding: 90px 20px 20px;
+            background-color: transparent;
+            color: var(--text-color);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            position: relative;
+            overflow-y: auto;
+        }
+        
+        .console-card {
+            background-color: var(--bg-color-transparent);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 40px;
+        }
+        
+        .console-card.transfer-mode {
+            cursor: pointer;
+            box-shadow: 0 0 15px 5px var(--accent-color);
+            border: 2px solid var(--accent-color);
+        }
+
+        .transfer-shroud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            z-index: 1;
+            display: none;
+        }
+        
+        .console-card.transfer-mode .transfer-shroud {
+            display: block;
+        }
+        
+        .console-card.transfer-mode:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px 8px var(--accent-color);
+        }
+        
+        .console-card.disabled-card {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        .console-card.target-mode {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .console-card.target-mode:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 15px 5px var(--accent-color);
+            border: 2px solid var(--accent-color);
+        }
+
+        .console-item {
+            display: flex;
+            align-items: center;
+            position: relative;
+            margin-bottom: 5px;
+        }
+
+        .console-image-container {
+            width: 100px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .console-item img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .console-item .console-label {
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            position: absolute;
+            left: 115px;
+            top: 15px;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .timer-progress-wrapper {
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-bar-container {
+            flex-grow: 1;
+            height: 10px;
+            background-color: #ddd;
+            border-radius: 5px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--accent-color);
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.3s ease-in-out;
+        }
+        
+        .timer-text {
+            color: white;
+            font-size: 0.9em;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+        
+        .end-time-display {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .controls {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .select-and-price {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-color);
+        }
+
+        .select-and-price select {
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: white;
+            color: var(--text-color);
+        }
+        
+        .price-display {
+            color: white;
+            font-weight: bold;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .start-reset-btns, .pause-resume-btns, .end-btns {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .control-btn {
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            flex-grow: 1;
+            font-weight: bold;
+        }
+        
+        .control-btn.start-btn {
+            background-color: rgba(76, 175, 80, 0.5);
+            border: 2px solid rgba(76, 175, 80, 0.5);
+            color: white;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .control-btn.reset-btn {
+            background-color: rgba(244, 67, 54, 0.5);
+            border: 2px solid rgba(244, 67, 54, 0.5);
+            color: white;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .control-btn.purple-neon {
+            background-color: rgba(77, 36, 142, 0.5);
+            border: 2px solid var(--accent-color);
+            color: white;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+        
+        .control-btn.end-early-btn {
+            background-color: rgba(244, 67, 54, 0.5);
+            border: 2px solid rgba(244, 67, 54, 0.5);
+            color: white;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        .control-btn.start-btn:hover {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+            text-shadow: none;
+        }
+
+        .control-btn.reset-btn:hover {
+            background-color: #f44336;
+            color: white;
+            border-color: #f44336;
+            text-shadow: none;
+        }
+
+        .control-btn.purple-neon:hover {
+            background-color: var(--main-color);
+            box-shadow: 0 0 10px var(--accent-color);
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+        
+        .control-btn.end-early-btn:hover {
+            background-color: #f44336;
+            color: white;
+            border-color: #f44336;
+            text-shadow: none;
+        }
+        
+        .control-btn.add-time-btn, .control-btn.change-console-btn {
+            flex-grow: 1;
+            flex-basis: calc(50% - 5px);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .logout-btn {
+            background-color: transparent;
+            border: 2px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .logout-btn:hover {
+            background-color: var(--accent-color);
+            color: var(--main-color);
+        }
+        
+        .earnings-display {
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+            margin-top: auto;
+        }
+        
+        @keyframes flicker-text {
+            0% {
+                text-shadow: 0 0 5px var(--accent-color), 0 0 10px var(--accent-color);
+            }
+            50% {
+                text-shadow: 0 0 2px rgba(129, 253, 233, 0.5), 0 0 4px rgba(129, 253, 233, 0.5);
+            }
+            100% {
+                text-shadow: 0 0 5px var(--accent-color), 0 0 10px var(--accent-color);
+            }
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-1deg); }
+            50% { transform: translateX(5px) rotate(1deg); }
+            75% { transform: translateX(-5px) rotate(-1deg); }
+            100% { transform: translateX(0); }
+        }
+
+        .console-card.shaking {
+            animation: shake 0.3s infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="username-display" id="usernameDisplay">Empleado</h1>
+    <audio id="alarm-sound" src="Alarm.wav" preload="auto"></audio>
+
+    <div class="main-container" id="mainPanel">
+        <aside id="sidebar" class="sidebar collapsed">
+            <h2 class="earnings-display" id="totalEarningsDisplay">Dinero obtenido: C$ 0</h2>
+            <button class="logout-btn" id="logoutBtn">Cerrar Sesión</button>
+        </aside>
+
+        <main class="main-content" id="consoleGrid">
+            <div class="transfer-message-global" id="transferMessage">Elige tu nueva consola</div>
+            
+        </main>
+    </div>
+    
+    <script>
+    const body = document.body;
+    document.addEventListener('DOMContentLoaded', () => {
+        const mainPanel = document.getElementById('mainPanel');
+        const usernameDisplay = document.getElementById('usernameDisplay');
+        const sidebar = document.getElementById('sidebar');
+        const logoutBtn = document.getElementById('logoutBtn');
+        function getEmployeeName() {
+            try {
+                const stored = localStorage.getItem('currentUser');
+                if (stored) {
+                    const user = JSON.parse(stored);
+                    if (user.username) {
+                        return user.username;
+                    }
+                }
+            } catch {}
+            return 'Empleado';
+        }
+        const employeeName = getEmployeeName();
+        usernameDisplay.textContent = employeeName;
+        mainPanel.style.display = 'flex';
+        body.style.flexDirection = 'row';
+        // Mensaje de bienvenida solo en consola
+        if (employeeName && employeeName !== 'Empleado') {
+            console.log(`¡Bienvenido, ${employeeName}! Autenticación exitosa.`);
+        }
+        // Barra lateral oculta al inicio (display: none)
+        sidebar.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        usernameDisplay.style.cursor = 'pointer';
+        let sidebarVisible = false;
+        usernameDisplay.addEventListener('click', () => {
+            sidebarVisible = !sidebarVisible;
+            if (sidebarVisible) {
+                sidebar.style.display = 'flex';
+                logoutBtn.style.display = 'block';
+            } else {
+                sidebar.style.display = 'none';
+                logoutBtn.style.display = 'none';
+            }
+        });
+        logoutBtn.onclick = function() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'Index.html';
+        };
+    });
+
+
+    let transferMode = false;
+    let sourceCard = null;
+    let totalEarnings = 0;
+
+    // Unificar claves de localStorage con paneladmins.html
+    let consoles = [];
+    let prices = { ps5: {}, switch: {} };
+    let employees = [];
+
+    // Cargar datos desde la API REST
+    async function fetchConsoles() {
+        const res = await fetch('https://zonagamer-backend.onrender.com/consoles');
+        consoles = await res.json();
+    }
+    async function fetchPrices() {
+        const res = await fetch('https://zonagamer-backend.onrender.com/prices');
+        prices = await res.json();
+    }
+    async function fetchEmployees() {
+        const res = await fetch('https://zonagamer-backend.onrender.com/employees');
+        employees = await res.json();
+    }
+
+    // Guardar datos en la API REST
+    async function saveConsoles(newConsoles) {
+        await fetch('https://zonagamer-backend.onrender.com/consoles', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newConsoles)
+        });
+        consoles = newConsoles;
+    }
+    async function savePrices(newPrices) {
+        await fetch('https://zonagamer-backend.onrender.com/prices', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newPrices)
+        });
+        prices = newPrices;
+    }
+    async function saveEmployees(newEmployees) {
+        await fetch('https://zonagamer-backend.onrender.com/employees', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newEmployees)
+        });
+        employees = newEmployees;
+    }
+
+        
+
+        function loadAndRenderConsoles() {
+            consoles.sort((a, b) => a.number - b.number);
+            consoleGrid.innerHTML = '<div class="transfer-message-global" id="transferMessage">Elige tu nueva consola</div>';
+            
+            consoles.forEach(consoleData => {
+                const card = document.createElement('div');
+                card.className = 'console-card';
+                card.dataset.consoleType = consoleData.type;
+                card.dataset.consoleNumber = consoleData.number;
+                card.innerHTML = `
+                    <div class="transfer-shroud"></div>
+                    <div class="console-item">
+                        <div class="console-image-container">
+                            <img src="${consoleData.img}" alt="${consoleData.type}">
+                        </div>
+                        <span class="console-label">${consoleData.name}</span>
+                    </div>
+                    <div class="timer-progress-wrapper">
+                        <span class="timer-text timer-left">0:00:00</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar"></div>
+                        </div>
+                        <span class="timer-text timer-right">0:00:00</span>
+                    </div>
+                    <div class="end-time-display"></div>
+                    <div class="controls">
+                        <div class="select-and-price">
+                            <select class="time-select">
+                                <option value="" selected disabled>Elegir tiempo</option>
+                            </select>
+                            <span class="price-display">C$ 0</span>
+                        </div>
+                        <div class="start-reset-btns">
+                            <button class="control-btn start-btn">Iniciar</button>
+                            <button class="control-btn reset-btn">Restablecer</button>
+                        </div>
+                        <div class="pause-resume-btns hidden">
+                            <button class="control-btn purple-neon pause-btn">Pausar</button>
+                            <button class="control-btn purple-neon resume-btn hidden">Reanudar</button>
+                            <button class="control-btn end-early-btn">Detener</button>
+                            <button class="control-btn purple-neon change-console-btn">Cambiar de consola</button>
+                        </div>
+                        <div class="end-btns hidden">
+                            <button class="control-btn purple-neon end-session-btn">Ya detuve el recorrido</button>
+                            <button class="control-btn purple-neon add-time-btn">Añadir más tiempo</button>
+                        </div>
+                        <div class="transfer-btns hidden">
+                            <button class="control-btn reset-btn cancel-transfer-btn">Cancelar</button>
+                        </div>
+                    </div>
+                `;
+                consoleGrid.appendChild(card);
+                initCardFunctionality(card);
+            });
+        }
+
+        function formatDuration(seconds) {
+            const totalMinutes = seconds / 60;
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            
+            let parts = [];
+            if (hours > 0) {
+                parts.push(`${hours} Hora${hours > 1 ? 's' : ''}`);
+            }
+            if (minutes > 0) {
+                parts.push(`${minutes} Minuto${minutes > 1 ? 's' : ''}`);
+            }
+            
+            if (parts.length === 2) {
+                return `${parts[0]} y ${parts[1]}`;
+            } else if (parts.length === 1) {
+                return parts[0];
+            } else {
+                return '0 Minutos';
+            }
+        }
+
+        function populatePriceSelects(card) {
+            const consoleType = card.dataset.consoleType === 'Play Station 5' ? 'ps5' : 'switch';
+            const timeSelect = card.querySelector('.time-select');
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.disabled = true;
+            defaultOption.selected = true;
+            defaultOption.textContent = 'Elegir tiempo';
+            timeSelect.innerHTML = '';
+            timeSelect.appendChild(defaultOption);
+
+            const consolePrices = prices[consoleType] || {};
+            const sortedPricesKeys = Object.keys(consolePrices).sort((a, b) => parseInt(a) - parseInt(b));
+
+            sortedPricesKeys.forEach(seconds => {
+                const option = document.createElement('option');
+                option.value = seconds;
+                option.dataset.price = consolePrices[seconds];
+                option.textContent = formatDuration(parseInt(seconds));
+                timeSelect.appendChild(option);
+            });
+        }
+
+        function loadEarnings() {
+            // TODO: Migrar earnings a backend si es necesario
+            const storedEarnings = 0;
+            const storedDate = null;
+            const todayISO = getFechaNicaragua();
+
+            const parsedEarnings = parseFloat(storedEarnings);
+            totalEarnings = (storedEarnings !== null && !isNaN(parsedEarnings)) ? parsedEarnings : 0;
+
+            // Si la fecha guardada no es formato ISO o es un día diferente, reiniciar
+            const isISODate = /^\d{4}-\d{2}-\d{2}$/.test(storedDate);
+            if (!isISODate || storedDate !== todayISO) {
+                totalEarnings = 0;
+                // TODO: Guardar earnings en backend si es necesario
+                // Mostrar mensaje de reinicio
+                setTimeout(() => {
+                    alert('El total de ganancias se ha reiniciado porque la fecha anterior era ' + (storedDate || 'vacía') + ' y hoy es ' + todayISO);
+                }, 500);
+            }
+            updateEarningsDisplay();
+        }
+
+        function updateEarningsDisplay() {
+            totalEarningsDisplay.textContent = `Dinero obtenido: C$ ${totalEarnings}`;
+        }
+
+        function addEarnings(price) {
+            const newPrice = parseFloat(price);
+            if (!isNaN(newPrice)) {
+                totalEarnings += newPrice;
+                // TODO: Guardar earnings en backend si es necesario
+                updateEarningsDisplay();
+            }
+        }
+
+        function stopAlarmAndShaking(card) {
+            card.alarmSound.pause();
+            card.alarmSound.currentTime = 0;
+            card.alarmSound.loop = false;
+            card.classList.remove('shaking');
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds) || seconds < 0) {
+                return '0:00:00';
+            }
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${String(hours).padStart(1, '0')}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
+        
+        function handleTransferClick(event) {
+            if (!transferMode || !sourceCard) {
+                return;
+            }
+            const targetCard = event.currentTarget;
+            
+            const transferDuration = new Date().getTime() - sourceCard.pauseStartTime;
+            targetCard.totalSeconds = sourceCard.totalSeconds;
+            targetCard.currentSessionEarnings = sourceCard.currentSessionEarnings;
+            targetCard.totalPausedTime = sourceCard.totalPausedTime + transferDuration;
+            targetCard.elapsedSeconds = sourceCard.elapsedAtPause;
+            targetCard.sessionStartTime = new Date().getTime() - (targetCard.elapsedSeconds * 1000) - targetCard.totalPausedTime;
+            const selectedTimeValue = sourceCard.querySelector('.time-select').value;
+            const targetTimeSelect = targetCard.querySelector('.time-select');
+            populatePriceSelects(targetCard);
+            targetTimeSelect.value = selectedTimeValue;
+            const targetPrice = targetTimeSelect.options[targetTimeSelect.selectedIndex].dataset.price;
+            targetCard.querySelector('.price-display').textContent = `C$ ${targetPrice}`;
+            targetCard.querySelector('.timer-left').textContent = formatTime(targetCard.elapsedSeconds);
+            // El derecho debe ser ESTÁTICO: siempre mostrar el tiempo total asignado
+            targetCard.querySelector('.timer-right').textContent = formatTime(targetCard.totalSeconds);
+            targetCard.startResetBtns.classList.add('hidden');
+            targetCard.pauseResumeBtns.classList.remove('hidden');
+            targetCard.querySelector('.pause-btn').classList.add('hidden');
+            targetCard.querySelector('.resume-btn').classList.remove('hidden');
+            clearInterval(targetCard.intervalId);
+            targetCard.pauseStartTime = new Date().getTime();
+            targetCard.updateEndTimeDisplay();
+            // Guardar estado de ambas consolas
+            if (typeof targetCard.saveCardState === 'function') targetCard.saveCardState();
+            if (typeof sourceCard.saveCardState === 'function') sourceCard.saveCardState();
+            // Guardar sesión de cambio en la consola destino
+            saveSessionData(
+                targetCard.dataset.consoleType,
+                targetCard.dataset.consoleNumber,
+                targetCard.elapsedSeconds,
+                targetCard.currentSessionEarnings,
+                targetCard.sessionStartTime,
+                'cambio',
+                `Este antes estaba en ${sourceCard.dataset.consoleType} #${sourceCard.dataset.consoleNumber}, pero se cambió a esta ${targetCard.dataset.consoleType} #${targetCard.dataset.consoleNumber}`,
+                `${sourceCard.dataset.consoleType} #${sourceCard.dataset.consoleNumber}`
+            );
+            sourceCard.resetCard();
+            transferMode = false;
+            transferMessage.style.display = 'none';
+            document.querySelectorAll('.console-card').forEach(c => {
+                c.classList.remove('disabled-card', 'target-mode', 'transfer-mode');
+                c.removeEventListener('click', handleTransferClick);
+            });
+            sourceCard = null;
+        }
+
+        function initCardFunctionality(card) {
+            // --- Estado persistente por consola ---
+            card.sessionStartTime = null;
+            card.totalSeconds = 0;
+            card.intervalId = null;
+            card.pauseStartTime = null;
+            card.totalPausedTime = 0;
+            card.elapsedSeconds = 0;
+            card.elapsedAtPause = 0;
+            card.currentSessionEarnings = 0;
+            card.alarmSound = alarmSound.cloneNode();
+
+            card.startResetBtns = card.querySelector('.start-reset-btns');
+            card.pauseResumeBtns = card.querySelector('.pause-resume-btns');
+            card.endBtns = card.querySelector('.end-btns');
+            card.transferBtns = card.querySelector('.transfer-btns');
+            card.transferShroud = card.querySelector('.transfer-shroud');
+
+            const startBtn = card.querySelector('.start-btn');
+            const resetBtn = card.querySelector('.reset-btn');
+            const pauseBtn = card.querySelector('.pause-btn');
+            const resumeBtn = card.querySelector('.resume-btn');
+            const endSessionBtn = card.querySelector('.end-session-btn');
+            const endEarlyBtn = card.querySelector('.end-early-btn');
+            const addTimeBtn = card.querySelector('.add-time-btn');
+            const changeConsoleBtn = card.querySelector('.change-console-btn');
+            const cancelTransferBtn = card.querySelector('.cancel-transfer-btn');
+
+            const timeSelect = card.querySelector('.time-select');
+            const timeLeftDisplay = card.querySelector('.timer-left');
+            const timeRightDisplay = card.querySelector('.timer-right');
+            const progressBar = card.querySelector('.progress-bar');
+            const endTimeDisplay = card.querySelector('.end-time-display');
+
+            populatePriceSelects(card);
+
+            // --- Persistencia de estado ---
+            const getCardKey = () => `consoleState_${card.dataset.consoleType}_${card.dataset.consoleNumber}`;
+            function saveCardState() {
+                const state = {
+                    sessionStartTime: card.sessionStartTime,
+                    totalSeconds: card.totalSeconds,
+                    totalPausedTime: card.totalPausedTime,
+                    elapsedSeconds: card.elapsedSeconds,
+                    elapsedAtPause: card.elapsedAtPause,
+                    pauseStartTime: card.pauseStartTime,
+                    currentSessionEarnings: card.currentSessionEarnings,
+                    timeSelectValue: timeSelect.value,
+                    priceDisplay: card.querySelector('.price-display').textContent,
+                    ui: {
+                        startReset: !card.startResetBtns.classList.contains('hidden'),
+                        pauseResume: !card.pauseResumeBtns.classList.contains('hidden'),
+                        endBtns: !card.endBtns.classList.contains('hidden'),
+                        transferBtns: !card.transferBtns.classList.contains('hidden'),
+                        pauseBtn: !pauseBtn.classList.contains('hidden'),
+                        resumeBtn: !resumeBtn.classList.contains('hidden')
+                    }
+                };
+                // TODO: Guardar estado de consola en backend si es necesario
+            }
+            function loadCardState() {
+                // TODO: Leer estado de consola desde backend si es necesario
+                if (!stateStr) return;
+                try {
+                    const state = JSON.parse(stateStr);
+                    card.sessionStartTime = state.sessionStartTime;
+                    card.totalSeconds = state.totalSeconds;
+                    card.totalPausedTime = state.totalPausedTime;
+                    card.elapsedSeconds = state.elapsedSeconds;
+                    card.elapsedAtPause = state.elapsedAtPause;
+                    card.pauseStartTime = state.pauseStartTime;
+                    card.currentSessionEarnings = state.currentSessionEarnings;
+                    timeSelect.value = state.timeSelectValue || '';
+                    card.querySelector('.price-display').textContent = state.priceDisplay || 'C$ 0';
+                    // UI
+                    if (state.ui) {
+                        card.startResetBtns.classList.toggle('hidden', !state.ui.startReset);
+                        card.pauseResumeBtns.classList.toggle('hidden', !state.ui.pauseResume);
+                        card.endBtns.classList.toggle('hidden', !state.ui.endBtns);
+                        card.transferBtns.classList.toggle('hidden', !state.ui.transferBtns);
+                        pauseBtn.classList.toggle('hidden', !state.ui.pauseBtn);
+                        resumeBtn.classList.toggle('hidden', !state.ui.resumeBtn);
+                    }
+                    // Temporizadores
+                    // Si la sesión está activa (no en pausa ni finalizada), reanudar el intervalo
+                    const isRunning = card.sessionStartTime && card.pauseResumeBtns && !card.pauseResumeBtns.classList.contains('hidden') && pauseBtn && !pauseBtn.classList.contains('hidden');
+                    if (isRunning) {
+                        clearInterval(card.intervalId);
+                        card.intervalId = setInterval(card.checkTimeAndAct, 100);
+                        // Calcular el tiempo transcurrido real
+                        const now = new Date().getTime();
+                        const elapsedActiveTime = (now - card.sessionStartTime - card.totalPausedTime) / 1000;
+                        card.elapsedSeconds = Math.floor(elapsedActiveTime);
+                    }
+                    timeLeftDisplay.textContent = formatTime(card.elapsedSeconds);
+                    // El derecho debe ser ESTÁTICO: siempre mostrar el tiempo total asignado
+                    timeRightDisplay.textContent = formatTime(card.totalSeconds);
+                    progressBar.style.width = `${(card.elapsedSeconds / (card.totalSeconds || 1)) * 100}%`;
+                    card.updateEndTimeDisplay();
+                } catch (e) {}
+            }
+
+            card.stopAlarmAndShaking = function() {
+                this.alarmSound.pause();
+                this.alarmSound.currentTime = 0;
+                this.alarmSound.loop = false;
+                this.classList.remove('shaking');
+            }
+
+            card.startNewSession = function(totalSecs, currentEarnings) {
+                card.stopAlarmAndShaking(); 
+                card.totalSeconds = parseInt(totalSecs);
+                card.currentSessionEarnings = currentEarnings;
+                card.sessionStartTime = new Date().getTime();
+                card.totalPausedTime = 0;
+                card.elapsedSeconds = 0;
+                // El derecho debe ser ESTÁTICO: siempre mostrar el tiempo total asignado
+                const formattedTime = formatTime(card.totalSeconds);
+                timeLeftDisplay.textContent = '0:00:00';
+                timeRightDisplay.textContent = formattedTime;
+                card.updateEndTimeDisplay();
+                clearInterval(card.intervalId);
+                card.intervalId = setInterval(card.checkTimeAndAct, 100);
+                card.startResetBtns.classList.add('hidden');
+                card.pauseResumeBtns.classList.remove('hidden');
+                card.endBtns.classList.add('hidden');
+                pauseBtn.classList.remove('hidden');
+                resumeBtn.classList.add('hidden');
+                saveCardState();
+            }
+
+            card.checkTimeAndAct = function() {
+                const now = new Date().getTime();
+                const elapsedActiveTime = (now - card.sessionStartTime - card.totalPausedTime) / 1000;
+                const remainingTime = card.totalSeconds - elapsedActiveTime;
+                if (remainingTime <= 0) {
+                    clearInterval(card.intervalId);
+                    card.pauseResumeBtns.classList.add('hidden');
+                    card.endBtns.classList.remove('hidden');
+                    card.startResetBtns.classList.add('hidden');
+                    card.classList.add('shaking');
+                    card.alarmSound.loop = true;
+                    card.alarmSound.play();
+                }
+                card.elapsedSeconds = Math.floor(elapsedActiveTime);
+                timeLeftDisplay.textContent = formatTime(card.elapsedSeconds);
+                // El derecho debe ser ESTÁTICO: siempre mostrar el tiempo total asignado
+                timeRightDisplay.textContent = formatTime(card.totalSeconds);
+                progressBar.style.width = `${(card.elapsedSeconds / (card.totalSeconds || 1)) * 100}%`;
+                saveCardState();
+            };
+
+            card.updateEndTimeDisplay = function() {
+                if (card.sessionStartTime && card.totalSeconds > 0) {
+                    const elapsedActiveTime = (new Date().getTime() - card.sessionStartTime - card.totalPausedTime) / 1000;
+                    const remainingDuration = (card.totalSeconds - elapsedActiveTime) * 1000;
+                    const endTime = new Date(new Date().getTime() + remainingDuration);
+                    const endHours = String(endTime.getHours()).padStart(2, '0');
+                    const endMinutes = String(endTime.getMinutes()).padStart(2, '0');
+                    const endSeconds = String(endTime.getSeconds()).padStart(2, '0');
+                    endTimeDisplay.textContent = `Termina a las ${endHours}:${endMinutes}:${endSeconds}`;
+                } else {
+                    endTimeDisplay.textContent = '';
+                }
+            };
+
+            card.resetCard = function() {
+                clearInterval(card.intervalId);
+                card.stopAlarmAndShaking();
+                timeLeftDisplay.textContent = '0:00:00';
+                timeRightDisplay.textContent = '0:00:00';
+                progressBar.style.width = '0%';
+                endTimeDisplay.textContent = '';
+                card.startResetBtns.classList.remove('hidden');
+                card.pauseResumeBtns.classList.add('hidden');
+                card.endBtns.classList.add('hidden');
+                card.transferBtns.classList.add('hidden');
+                timeSelect.value = "";
+                card.querySelector('.price-display').textContent = `C$ 0`;
+                card.sessionStartTime = null;
+                card.totalSeconds = 0;
+                card.elapsedSeconds = 0;
+                card.pauseStartTime = null;
+                card.totalPausedTime = 0;
+                card.elapsedAtPause = 0;
+                card.currentSessionEarnings = 0;
+                card.classList.remove('transfer-mode', 'target-mode', 'disabled-card');
+                card.removeEventListener('click', handleTransferClick);
+                // TODO: Eliminar estado de consola en backend si es necesario
+            }
+
+            // Al cargar la página, restaurar estado
+            loadCardState();
+
+            timeSelect.addEventListener('change', (event) => {
+                const priceDisplay = card.querySelector('.price-display');
+                const selectedOption = timeSelect.options[timeSelect.selectedIndex];
+                const selectedPrice = selectedOption.dataset.price;
+                priceDisplay.textContent = `C$ ${selectedPrice || '0'}`;
+            });
+
+            startBtn.addEventListener('click', () => {
+                if (timeSelect.selectedIndex <= 0) {
+                    alert("Por favor, elige una duración antes de iniciar.");
+                    return;
+                }
+                
+                const selectedOption = timeSelect.options[timeSelect.selectedIndex];
+                const selectedValue = selectedOption.value;
+                const selectedPrice = parseFloat(selectedOption.dataset.price);
+
+                card.startNewSession(selectedValue, selectedPrice);
+            });
+
+            pauseBtn.addEventListener('click', () => {
+                clearInterval(card.intervalId);
+                card.pauseStartTime = new Date().getTime();
+                card.updateEndTimeDisplay();
+                pauseBtn.classList.add('hidden');
+                resumeBtn.classList.remove('hidden');
+            });
+
+            resumeBtn.addEventListener('click', () => {
+                if (card.pauseStartTime) {
+                    const pauseDuration = new Date().getTime() - card.pauseStartTime;
+                    card.totalPausedTime += pauseDuration;
+                    card.pauseStartTime = null;
+                }
+                
+                card.updateEndTimeDisplay();
+                card.checkTimeAndAct(); 
+                clearInterval(card.intervalId);
+                card.intervalId = setInterval(card.checkTimeAndAct, 100);
+
+                pauseBtn.classList.remove('hidden');
+                resumeBtn.classList.add('hidden');
+            });
+            
+            endSessionBtn.addEventListener('click', () => {
+                const selectedOption = timeSelect.options[timeSelect.selectedIndex];
+                const selectedPrice = parseFloat(selectedOption.dataset.price);
+                // Siempre guardar solo 'Se detuvo' como comentario
+                saveSessionData(
+                    card.dataset.consoleType,
+                    card.dataset.consoleNumber,
+                    card.totalSeconds,
+                    selectedPrice,
+                    card.sessionStartTime,
+                    'detener',
+                    'Se detuvo'
+                );
+                addEarnings(selectedPrice);
+                card.resetCard();
+            });
+            
+            endEarlyBtn.addEventListener('click', () => {
+                const selectedOption = timeSelect.options[timeSelect.selectedIndex];
+                const selectedPrice = parseFloat(selectedOption.dataset.price);
+                // Siempre guardar solo 'Se detuvo' como comentario
+                saveSessionData(
+                    card.dataset.consoleType,
+                    card.dataset.consoleNumber,
+                    card.elapsedSeconds,
+                    selectedPrice,
+                    card.sessionStartTime,
+                    'detener',
+                    'Se detuvo'
+                );
+                addEarnings(selectedPrice);
+                card.resetCard();
+            });
+
+            resetBtn.addEventListener('click', () => {
+                card.resetCard();
+            });
+
+            addTimeBtn.addEventListener('click', () => {
+                const selectedOption = timeSelect.options[timeSelect.selectedIndex];
+                if (selectedOption && selectedOption.value) {
+                    const selectedValue = parseInt(selectedOption.value);
+                    const selectedPrice = parseFloat(selectedOption.dataset.price);
+
+                    saveSessionData(card.dataset.consoleType, card.dataset.consoleNumber, card.elapsedSeconds, card.currentSessionEarnings, card.sessionStartTime);
+                    addEarnings(card.currentSessionEarnings);
+                    card.startNewSession(selectedValue, selectedPrice);
+
+                } else {
+                    alert("Por favor, elige una duración antes de añadir más tiempo.");
+                }
+            });
+            
+            changeConsoleBtn.addEventListener('click', () => {
+                if (transferMode) return;
+                
+                clearInterval(card.intervalId);
+                card.elapsedAtPause = card.elapsedSeconds;
+                card.pauseStartTime = new Date().getTime();
+                
+                transferMode = true;
+                sourceCard = card;
+                
+                sourceCard.pauseResumeBtns.classList.add('hidden');
+                sourceCard.transferBtns.classList.remove('hidden');
+                
+                sourceCard.classList.add('transfer-mode');
+                transferMessage.style.display = 'block';
+                
+                document.querySelectorAll('.console-card').forEach(c => {
+                    if (c !== sourceCard && c.totalSeconds === 0) {
+                        c.classList.add('target-mode');
+                        c.addEventListener('click', handleTransferClick);
+                    } else {
+                        c.classList.add('disabled-card');
+                    }
+                });
+            });
+
+            cancelTransferBtn.addEventListener('click', () => {
+                if (!sourceCard) return;
+
+                sourceCard.classList.remove('transfer-mode');
+                sourceCard.pauseResumeBtns.classList.remove('hidden');
+                sourceCard.transferBtns.classList.add('hidden');
+                
+                if (sourceCard.totalSeconds > 0) {
+                    const now = new Date().getTime();
+                    const pauseDuration = now - sourceCard.pauseStartTime;
+                    sourceCard.totalPausedTime += pauseDuration;
+                    sourceCard.pauseStartTime = null;
+
+                    sourceCard.sessionStartTime = now - (sourceCard.elapsedSeconds * 1000) - sourceCard.totalPausedTime;
+                    sourceCard.updateEndTimeDisplay();
+                    clearInterval(sourceCard.intervalId);
+                    sourceCard.intervalId = setInterval(sourceCard.checkTimeAndAct, 100);
+                }
+                
+                transferMode = false;
+                transferMessage.style.display = 'none';
+
+                document.querySelectorAll('.console-card').forEach(c => {
+                    c.classList.remove('disabled-card', 'target-mode', 'transfer-mode');
+                    c.removeEventListener('click', handleTransferClick);
+                });
+                sourceCard = null;
+            });
+        }
+        
+        function saveSessionData(consoleType, consoleNumber, durationSeconds, totalEarnings, startTime) {
+            // Guardar sesiones con comentarios claros y sin repeticiones
+            // Migrar sesiones a backend
+            let sessions = [];
+            const currentUser = window.currentUser || null;
+            let action = arguments.length > 5 ? arguments[5] : undefined;
+            let fromConsole = arguments.length > 7 ? arguments[7] : undefined;
+            let comment = '';
+            if (action === 'detener') {
+                // Buscar si la sesión anterior fue un cambio en menos de 1 minuto
+                let lastSession = sessions.length > 0 ? sessions[sessions.length - 1] : null;
+                let justChanged = false;
+                let cambioComment = '';
+                if (lastSession && lastSession.action === 'cambio' && lastSession.consoleType === consoleType && lastSession.consoleNumber == consoleNumber) {
+                    let prevEnd = new Date(lastSession.endDate).getTime();
+                    let now = new Date().getTime();
+                    if (Math.abs(now - prevEnd) < 60000) {
+                        justChanged = true;
+                        cambioComment = lastSession.comment;
+                    }
+                }
+                if (justChanged && cambioComment) {
+                    comment = cambioComment + '; Se detuvo';
+                } else {
+                    comment = 'Se detuvo';
+                }
+            } else if (action === 'cambio' && fromConsole) {
+                comment = `Cambio de ${fromConsole} a ${consoleType} #${consoleNumber}`;
+            }
+            const newSession = {
+                consoleType,
+                consoleNumber,
+                startDate: getFechaHoraNicaragua(new Date(startTime)),
+                endDate: getFechaHoraNicaragua(),
+                totalPrice: totalEarnings,
+                clientName: currentUser && currentUser.username ? currentUser.username : 'Cliente',
+                isActive: false
+            };
+        // --- FECHA NICARAGUA ---
+        function getFechaNicaragua() {
+            const ahora = new Date();
+            const nica = ahora.toLocaleString('sv-SE', { timeZone: 'America/Managua' });
+            return nica.split(' ')[0];
+        }
+        function getFechaHoraNicaragua(dateObj) {
+            const d = dateObj ? new Date(dateObj) : new Date();
+            return d.toLocaleString('sv-SE', { timeZone: 'America/Managua' }).replace(' ', 'T');
+        }
+            if (action) newSession.action = action;
+            if (comment) newSession.comment = comment;
+            if (fromConsole) newSession.fromConsole = fromConsole;
+            sessions.push(newSession);
+            // Migrar sesiones a backend
+
+            // --- Automatización: enviar acción al backend para reporte ---
+            fetch('https://zonagamer-backend.onrender.com/accion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newSession)
+            }).then(r => r.json()).then(resp => {
+                if (!resp.ok) {
+                    console.error('No se pudo guardar la acción en el backend');
+                }
+            }).catch(err => {
+                console.error('Error enviando acción al backend:', err);
+            });
+        }
+
+        function recordWorkDay() {
+            const currentUser = window.currentUser || null;
+            if (currentUser && typeof currentUser.role === 'string' && currentUser.role.trim().toLowerCase() === 'trabajador') {
+                const today = new Date().toISOString().slice(0, 10);
+                // Migrar workDays a backend
+                let workDaysData = {};
+                if (!workDaysData[currentUser.username]) {
+                    workDaysData[currentUser.username] = [];
+                }
+                if (!workDaysData[currentUser.username].includes(today)) {
+                    workDaysData[currentUser.username].push(today);
+                    // Migrar workDays a backend
+                    console.log('[recordWorkDay] Día registrado:', today, 'para usuario:', currentUser.username);
+                } else {
+                    console.log('[recordWorkDay] Día ya registrado:', today, 'para usuario:', currentUser.username);
+                }
+                console.log('[recordWorkDay] workDaysData:', workDaysData);
+            } else if (currentUser) {
+                console.log('[recordWorkDay] Usuario con rol no trabajador:', currentUser.username, currentUser.role);
+            } else {
+                console.log('[recordWorkDay] No hay currentUser en sesión');
+            }
+        }
+        
+        // ...existing code...
+
+
+        usernameDisplay.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+        
+
+        logoutBtn.addEventListener('click', async () => {
+            // Clear session in backend
+            await fetch('https://zonagamer-backend.onrender.com/session', { method: 'DELETE' });
+            window.location.href = 'index.html';
+        });
+        
+        // Listeners para los botones del panel
+        if (typeof btnReporteGeneral !== 'undefined' && btnReporteGeneral) {
+            btnReporteGeneral.addEventListener('click', () => {
+                alert('Funcionalidad de Reporte General próximamente.');
+            });
+        }
+        if (typeof btnDescargarReporte !== 'undefined' && btnDescargarReporte) {
+            btnDescargarReporte.addEventListener('click', () => {
+                alert('Funcionalidad de Descargar Reporte próximamente.');
+            });
+        }
+        if (typeof btnAñadirConsola !== 'undefined' && btnAñadirConsola) {
+            btnAñadirConsola.addEventListener('click', () => {
+                alert('Funcionalidad de Añadir Consola próximamente.');
+            });
+        }
+        if (typeof btnAñadirPrecio !== 'undefined' && btnAñadirPrecio) {
+            btnAñadirPrecio.addEventListener('click', () => {
+                alert('Funcionalidad de Añadir Precio próximamente.');
+            });
+        }
+    </script>
+</body>
+</html>
