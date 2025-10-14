@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-mongoose.connect('mongodb+srv://yesseiramartinez_db_user:NuevaPass2025!@cluster0.uuwrtvt.mongodb.net/zonagamer?retryWrites=true&w=majority&appName=Cluster0', {
+mongoose.connect('mongodb+srv://yesseiramartinez_db_user:NuevaPass2025!@cluster0.uuwrtvt.mongodb.net/Zonagamer?retryWrites=true&w=majority&appName=Cluster0', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
