@@ -56,7 +56,7 @@ app.get('/', (req, res) => {
   res.send('API Zonagamer Backend funcionando');
 });
 // Conexión a MongoDB Atlas
-mongoose.connect(process.env.MONGODB_URI, {
+mongoose.connect(process.env.Zonagamer, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
