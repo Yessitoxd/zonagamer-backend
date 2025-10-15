@@ -1,4 +1,3 @@
-throw new Error("PRUEBA FATAL ANTES DE TODO");
 console.error("[DEBUG] Valor de process.env.Zonagamer:", process.env.Zonagamer);
 console.error("[DEBUG] Valor de process.env.MONGODB_URI:", process.env.MONGODB_URI);
 if (!process.env.Zonagamer) {
