@@ -1,4 +1,3 @@
-console.error("[DEBUG] Valor de process.env.MONGODB_URI:", process.env.MONGODB_URI);
 const mongoose = require('mongoose');
 // Backend mínimo para exponer acciones.json como API pública
 const express = require('express');
