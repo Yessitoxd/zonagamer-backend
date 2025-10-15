@@ -1,8 +1,4 @@
-console.error("[DEBUG] Valor de process.env.Zonagamer:", process.env.Zonagamer);
 console.error("[DEBUG] Valor de process.env.MONGODB_URI:", process.env.MONGODB_URI);
-if (!process.env.Zonagamer) {
-  throw new Error("[FATAL] La variable de entorno Zonagamer está vacía o no definida");
-}
 const mongoose = require('mongoose');
 // Backend mínimo para exponer acciones.json como API pública
 const express = require('express');
@@ -63,7 +59,7 @@ app.get('/', (req, res) => {
 // Conexión a MongoDB Atlas
 console.log("Valor de process.env.Zonagamer:", process.env.Zonagamer);
 console.log("Valor de process.env.MONGODB_URI:", process.env.MONGODB_URI);
-mongoose.connect(process.env.Zonagamer, {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
