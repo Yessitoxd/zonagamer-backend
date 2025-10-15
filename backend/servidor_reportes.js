@@ -1,5 +1,8 @@
-console.log("[DEBUG] Valor de process.env.Zonagamer:", process.env.Zonagamer);
-console.log("[DEBUG] Valor de process.env.MONGODB_URI:", process.env.MONGODB_URI);
+console.error("[DEBUG] Valor de process.env.Zonagamer:", process.env.Zonagamer);
+console.error("[DEBUG] Valor de process.env.MONGODB_URI:", process.env.MONGODB_URI);
+if (!process.env.Zonagamer) {
+  throw new Error("[FATAL] La variable de entorno Zonagamer está vacía o no definida");
+}
 const mongoose = require('mongoose');
 // Backend mínimo para exponer acciones.json como API pública
 const express = require('express');
