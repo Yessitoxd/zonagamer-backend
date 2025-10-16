@@ -1,3 +1,7 @@
+<script>
+    // Inicializar alarmSound usando el elemento <audio> del DOM
+    var alarmSound = document.getElementById('alarm-sound');
+    </script>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -618,7 +622,15 @@
     }
     async function fetchPrices() {
         const res = await fetch('https://zonagamer-backend.onrender.com/prices');
-        prices = await res.json();
+        const pricesArray = await res.json();
+        // Agrupa los precios por consola y duración
+        prices = { ps5: {}, switch: {} };
+        pricesArray.forEach(p => {
+            if (p.console && p.duration && p.price) {
+                if (!prices[p.console]) prices[p.console] = {};
+                prices[p.console][p.duration] = p.price;
+            }
+        });
     }
     async function fetchEmployees() {
         const res = await fetch('https://zonagamer-backend.onrender.com/employees');
@@ -654,9 +666,13 @@
         
 
         function loadAndRenderConsoles() {
-            consoles.sort((a, b) => a.number - b.number);
+            const consoleGrid = document.getElementById('consoleGrid');
+            if (!consoleGrid) return;
             consoleGrid.innerHTML = '<div class="transfer-message-global" id="transferMessage">Elige tu nueva consola</div>';
-            
+            if (!Array.isArray(consoles) || consoles.length === 0) return;
+            consoles.sort((a, b) => a.number - b.number);
+            console.log('DEBUG consoles:', consoles);
+            console.log('DEBUG prices:', prices);
             consoles.forEach(consoleData => {
                 const card = document.createElement('div');
                 card.className = 'console-card';
@@ -668,7 +684,7 @@
                         <div class="console-image-container">
                             <img src="${consoleData.img}" alt="${consoleData.type}">
                         </div>
-                        <span class="console-label">${consoleData.name}</span>
+                        <span class="console-label">${consoleData.name} #${consoleData.number}</span>
                     </div>
                     <div class="timer-progress-wrapper">
                         <span class="timer-text timer-left">0:00:00</span>
@@ -732,7 +748,8 @@
         }
 
         function populatePriceSelects(card) {
-            const consoleType = card.dataset.consoleType === 'Play Station 5' ? 'ps5' : 'switch';
+            // Usar el tipo de consola tal cual viene de la base de datos
+            const consoleType = card.dataset.consoleType;
             const timeSelect = card.querySelector('.time-select');
             const defaultOption = document.createElement('option');
             defaultOption.value = '';
@@ -868,7 +885,7 @@
             card.elapsedSeconds = 0;
             card.elapsedAtPause = 0;
             card.currentSessionEarnings = 0;
-            card.alarmSound = alarmSound.cloneNode();
+            card.alarmSound = alarmSound ? alarmSound.cloneNode() : null;
 
             card.startResetBtns = card.querySelector('.start-reset-btns');
             card.pauseResumeBtns = card.querySelector('.pause-resume-btns');
@@ -896,7 +913,7 @@
 
             // --- Persistencia de estado ---
             const getCardKey = () => `consoleState_${card.dataset.consoleType}_${card.dataset.consoleNumber}`;
-            function saveCardState() {
+            async function saveCardState() {
                 const state = {
                     sessionStartTime: card.sessionStartTime,
                     totalSeconds: card.totalSeconds,
@@ -916,13 +933,24 @@
                         resumeBtn: !resumeBtn.classList.contains('hidden')
                     }
                 };
-                // TODO: Guardar estado de consola en backend si es necesario
-            }
-            function loadCardState() {
-                // TODO: Leer estado de consola desde backend si es necesario
-                if (!stateStr) return;
                 try {
-                    const state = JSON.parse(stateStr);
+                    await fetch(`https://zonagamer-backend.onrender.com/console-state/${card.dataset.consoleNumber}`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ state })
+                        }
+                    );
+                } catch (e) {
+                    console.error('Error guardando estado de consola en backend:', e);
+                }
+            }
+            async function loadCardState() {
+                try {
+                    const res = await fetch(`https://zonagamer-backend.onrender.com/console-state/${card.dataset.consoleNumber}`);
+                    if (!res.ok) return;
+                    const state = await res.json();
+                    if (!state) return;
                     card.sessionStartTime = state.sessionStartTime;
                     card.totalSeconds = state.totalSeconds;
                     card.totalPausedTime = state.totalPausedTime;
@@ -941,23 +969,9 @@
                         pauseBtn.classList.toggle('hidden', !state.ui.pauseBtn);
                         resumeBtn.classList.toggle('hidden', !state.ui.resumeBtn);
                     }
-                    // Temporizadores
-                    // Si la sesión está activa (no en pausa ni finalizada), reanudar el intervalo
-                    const isRunning = card.sessionStartTime && card.pauseResumeBtns && !card.pauseResumeBtns.classList.contains('hidden') && pauseBtn && !pauseBtn.classList.contains('hidden');
-                    if (isRunning) {
-                        clearInterval(card.intervalId);
-                        card.intervalId = setInterval(card.checkTimeAndAct, 100);
-                        // Calcular el tiempo transcurrido real
-                        const now = new Date().getTime();
-                        const elapsedActiveTime = (now - card.sessionStartTime - card.totalPausedTime) / 1000;
-                        card.elapsedSeconds = Math.floor(elapsedActiveTime);
-                    }
-                    timeLeftDisplay.textContent = formatTime(card.elapsedSeconds);
-                    // El derecho debe ser ESTÁTICO: siempre mostrar el tiempo total asignado
-                    timeRightDisplay.textContent = formatTime(card.totalSeconds);
-                    progressBar.style.width = `${(card.elapsedSeconds / (card.totalSeconds || 1)) * 100}%`;
-                    card.updateEndTimeDisplay();
-                } catch (e) {}
+                } catch (e) {
+                    console.error('Error al cargar el estado de la consola desde backend:', e);
+                }
             }
 
             card.stopAlarmAndShaking = function() {
@@ -1332,6 +1346,12 @@
                 alert('Funcionalidad de Añadir Precio próximamente.');
             });
         }
+    // Renderizar tarjetas al cargar la página
+    document.addEventListener('DOMContentLoaded', async () => {
+        await fetchConsoles();
+        await fetchPrices();
+        loadAndRenderConsoles();
+    });
     </script>
 </body>
 </html>

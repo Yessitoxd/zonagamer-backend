@@ -1,3 +1,39 @@
+// Modelo para el estado de cada consola
+const consoleStateSchema = new mongoose.Schema({
+  consoleNumber: { type: Number, required: true, unique: true },
+  state: { type: Object, required: true }
+});
+const ConsoleState = mongoose.model('ConsoleState', consoleStateSchema);
+// Obtener el estado de una consola por número
+app.get('/console-state/:number', async (req, res) => {
+  try {
+    const { number } = req.params;
+    const found = await ConsoleState.findOne({ consoleNumber: Number(number) });
+    if (!found) return res.json(null);
+    res.json(found.state);
+  } catch (err) {
+    console.error('Error al obtener estado de consola:', err);
+    res.status(500).json({ error: 'Error al obtener estado de consola' });
+  }
+});
+
+// Guardar o actualizar el estado de una consola por número
+app.post('/console-state/:number', async (req, res) => {
+  try {
+    const { number } = req.params;
+    const { state } = req.body;
+    if (!state) return res.status(400).json({ error: 'Falta el estado' });
+    const updated = await ConsoleState.findOneAndUpdate(
+      { consoleNumber: Number(number) },
+      { state },
+      { upsert: true, new: true }
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error al guardar estado de consola:', err);
+    res.status(500).json({ error: 'Error al guardar estado de consola' });
+  }
+});
 const mongoose = require('mongoose');
 // Backend mínimo para exponer acciones.json como API pública
 const express = require('express');
