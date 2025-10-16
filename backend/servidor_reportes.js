@@ -1,4 +1,7 @@
-// Modelo para el estado de cada consola
+
+// ...otros modelos y conexión a MongoDB...
+
+// Modelo para el estado de cada consola (debe ir después de importar mongoose y la conexión)
 const consoleStateSchema = new mongoose.Schema({
   consoleNumber: { type: Number, required: true, unique: true },
   state: { type: Object, required: true }
