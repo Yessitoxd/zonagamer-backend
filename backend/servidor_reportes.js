@@ -249,6 +249,8 @@ app.put('/consoles', (req, res) => {
     });
 });
 
+
+// Obtener todos los precios
 app.get('/prices', (req, res) => {
   Price.find({})
     .then(prices => res.json(prices))
@@ -257,7 +259,7 @@ app.get('/prices', (req, res) => {
       res.status(500).json({ error: 'Error al leer precios desde MongoDB' });
     });
 });
-app.put('/prices', (req, res) => {
+
 // Crear un nuevo precio
 app.post('/prices', async (req, res) => {
   try {
@@ -274,6 +276,28 @@ app.post('/prices', async (req, res) => {
   }
 });
 
+// Editar precios (PUT, recibe array de precios a actualizar)
+app.put('/prices', async (req, res) => {
+  try {
+    const precios = req.body;
+    if (!Array.isArray(precios) || precios.length === 0) {
+      return res.status(400).json({ message: 'No se enviaron precios para actualizar.' });
+    }
+    for (const precio of precios) {
+      if (!precio._id || !precio.console || !precio.duration || !precio.price) continue;
+      await Price.findByIdAndUpdate(precio._id, {
+        console: precio.console,
+        duration: precio.duration,
+        price: precio.price
+      });
+    }
+    res.json({ message: 'Precios actualizados correctamente.' });
+  } catch (err) {
+    console.error('Error al actualizar precios:', err);
+    res.status(500).json({ message: 'Error al actualizar precios.' });
+  }
+});
+
 // Eliminar un precio por _id
 app.delete('/prices/:id', async (req, res) => {
   try {
@@ -287,15 +311,6 @@ app.delete('/prices/:id', async (req, res) => {
     console.error('Error al eliminar precio:', err);
     res.status(500).json({ message: 'Error al eliminar precio.' });
   }
-});
-  // Actualizar todos los precios (sobrescribe)
-  Price.deleteMany({})
-    .then(() => Price.insertMany(req.body))
-    .then(() => res.json({ ok: true }))
-    .catch(err => {
-      console.error('Error al guardar precios en MongoDB:', err);
-      res.status(500).json({ error: 'Error al guardar precios en MongoDB' });
-    });
 });
 
 // Endpoint para recibir y guardar acciones nuevas (sesiones)
