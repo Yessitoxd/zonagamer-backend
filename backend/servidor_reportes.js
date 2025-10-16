@@ -1,5 +1,5 @@
-
-// ...otros modelos y conexión a MongoDB...
+const mongoose = require('mongoose');
+// ...otros requires y conexión a MongoDB...
 
 // Modelo para el estado de cada consola (debe ir después de importar mongoose y la conexión)
 const consoleStateSchema = new mongoose.Schema({
