@@ -258,6 +258,36 @@ app.get('/prices', (req, res) => {
     });
 });
 app.put('/prices', (req, res) => {
+// Crear un nuevo precio
+app.post('/prices', async (req, res) => {
+  try {
+    const { console, duration, price } = req.body;
+    if (!console || !duration || !price) {
+      return res.status(400).json({ message: 'Faltan datos requeridos.' });
+    }
+    const nuevoPrecio = new Price({ console, duration, price });
+    await nuevoPrecio.save();
+    res.status(201).json({ message: 'Precio añadido correctamente.' });
+  } catch (err) {
+    console.error('Error al añadir precio:', err);
+    res.status(500).json({ message: 'Error al añadir precio.' });
+  }
+});
+
+// Eliminar un precio por _id
+app.delete('/prices/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Price.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Precio no encontrado.' });
+    }
+    res.json({ message: 'Precio eliminado correctamente.' });
+  } catch (err) {
+    console.error('Error al eliminar precio:', err);
+    res.status(500).json({ message: 'Error al eliminar precio.' });
+  }
+});
   // Actualizar todos los precios (sobrescribe)
   Price.deleteMany({})
     .then(() => Price.insertMany(req.body))
