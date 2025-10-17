@@ -6,10 +6,28 @@ const cors = require('cors');
 
 // Backend mínimo para exponer acciones.json como API pública
 const app = express();
-app.use(cors({
-  origin: 'https://zonagamersrs.netlify.app',
-  credentials: true
-}));
+// CORS robusto para Netlify y localhost
+const allowedOrigins = [
+  'https://zonagamersrs.netlify.app',
+  'http://localhost:5500',
+  'http://127.0.0.1:5500'
+];
+const corsOptions = {
+  origin: function (origin, callback) {
+    // permitir peticiones sin origin (como curl/postman) o si está en la lista
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed'));
+    }
+  },
+  credentials: true,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+  optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
