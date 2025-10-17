@@ -960,6 +960,7 @@
 
             status.textContent = 'Generando archivo en Sheets...';
             const BACKEND_URL = 'https://zonagamer-backend.onrender.com';
+            // Always use absolute backend URL to avoid Netlify 404 when calling relative paths
             async function postGenerate(url) {
                 const res = await fetch(url, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
                 if (!res.ok) {

@@ -38,7 +38,7 @@ function doPost(e){
         sheet.getRange(startRow,3,values.length,1).setNumberFormat('dd/mm/yyyy');
         sheet.getRange(startRow,6,values.length,1).setNumberFormat('#,##0.00');
         sheet.getRange(startRow,10,values.length,1).setWrap(true);
-        for(var i=0;i<values.length;i++){ try{ sheet.setRowHeight(startRow+i,40); }catch(er){} }
+  for(var i=0;i<values.length;i++){ try{ sheet.setRowHeight(startRow+i,60); }catch(er){} }
       }catch(e){}
     }
     try{
@@ -56,7 +56,7 @@ function doPost(e){
     var totalMoney=(payload.totals&&payload.totals.totalMoney!=null)?payload.totals.totalMoney:values.reduce(function(a,b){return a+(Number(b[3])||0);},0);
   sheet.getRange(totalsRow,5).setValue(totalUses);sheet.getRange(totalsRow,6).setValue(totalMoney);
   try{sheet.getRange(totalsRow,5,1,2).setFontWeight('bold');sheet.getRange(totalsRow,6).setNumberFormat('#,##0.00');}catch(e){}
-    try{sheet.autoResizeColumns(3,8);}catch(e){}
+  // avoid auto-resizing columns because it may shrink date column and produce "#####" in Excel
     var url='https://docs.google.com/spreadsheets/d/'+ss.getId()+'/export?format=xlsx';
     return ContentService.createTextOutput(JSON.stringify({ok:true,downloadUrl:url,fileId:ss.getId()})).setMimeType(ContentService.MimeType.JSON);
   }catch(err){
