@@ -1283,13 +1283,15 @@
 
             const totalUses = sessions.length;
             const totalMoney = sessions.reduce((a,b) => a + (Number(b.totalPrice||b.total||0)||0), 0);
+            const totalTimeMinutes = sessions.reduce((acc, s) => acc + (Math.round((Number(s.durationSeconds)||0)/60)), 0);
+            // day label: single date or range
+            const dayLabel = (start && end && start !== end) ? (start + ' al ' + end) : start;
 
             const payload = {
-                // you can optionally pass templateId here; otherwise set in Apps Script
                 title: `Reporte ${start}` + (start !== end ? ` - ${end}` : ''),
-                summary: { dayReportCellF5: start, dayTotalCellF8: `C$ ${totalMoney.toFixed(2)}` },
+                summary: { dayReportCellF5: dayLabel, dayTotalCellF8: `C$ ${totalMoney.toFixed(2)}` },
                 rows: rows,
-                totals: { totalUses: totalUses, totalMoney: totalMoney }
+                totals: { totalUses: totalUses, totalMoney: totalMoney, totalTimeMinutes: totalTimeMinutes }
             };
 
             status.textContent = 'Generando archivo en Sheets...';

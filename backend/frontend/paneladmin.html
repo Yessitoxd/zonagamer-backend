@@ -950,12 +950,14 @@
 
             const totalUses = sessions.length;
             const totalMoney = sessions.reduce((a,b) => a + (Number(b.totalPrice||b.total||0)||0), 0);
+            const totalTimeMinutes = sessions.reduce((acc, s) => acc + (Math.round((Number(s.durationSeconds)||0)/60)), 0);
+            const dayLabel = (start && end && start !== end) ? (start + ' al ' + end) : start;
 
             const payload = {
                 title: `Reporte ${start}` + (start !== end ? ` - ${end}` : ''),
-                summary: { dayReportCellF5: start, dayTotalCellF8: `C$ ${totalMoney.toFixed(2)}` },
+                summary: { dayReportCellF5: dayLabel, dayTotalCellF8: `C$ ${totalMoney.toFixed(2)}` },
                 rows: rows,
-                totals: { totalUses: totalUses, totalMoney: totalMoney }
+                totals: { totalUses: totalUses, totalMoney: totalMoney, totalTimeMinutes: totalTimeMinutes }
             };
 
             status.textContent = 'Generando archivo en Sheets...';

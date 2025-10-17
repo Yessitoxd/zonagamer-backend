@@ -4,7 +4,8 @@ function doPost(e){
     var payload=JSON.parse(e.postData.contents);
     var templateId=payload.templateId||TEMPLATE_SPREADSHEET_ID;
     if(!templateId)return ContentService.createTextOutput(JSON.stringify({error:'Missing templateId'})).setMimeType(ContentService.MimeType.JSON);
-    var copy=DriveApp.getFileById(templateId).makeCopy('Reporte - '+(payload.title||new Date().toISOString()));
+  var copyName = payload.title ? payload.title : ('Reporte - ' + new Date().toISOString());
+  var copy=DriveApp.getFileById(templateId).makeCopy(copyName);
     var ss=SpreadsheetApp.openById(copy.getId());
     var sheet=ss.getSheets()[0];
     try{
@@ -26,7 +27,21 @@ function doPost(e){
       values.push([fechaVal,r.empleado||'',r.consola||'',typeof r.dinero!=='undefined'?r.dinero:'',r.tiempo||'',r.inicio||'',r.fin||'',r.comentario||'']);
     });
     if(values.length>0){
-      var colFecha = values.map(function(r){return [r[0]];});
+      var colFecha = values.map(function(r){
+        var v = r[0];
+        try{
+          if(v instanceof Date){
+            var dd = String(v.getDate()).padStart(2,'0');
+            var mm = String(v.getMonth()+1).padStart(2,'0');
+            var yy = v.getFullYear();
+            return [dd+'/'+mm+'/'+yy];
+          }
+          if(typeof v === 'string' && /\d{4}-\d{2}-\d{2}/.test(v)){
+            var parts = v.split('-'); return [parts[2]+'/'+parts[1]+'/'+parts[0]];
+          }
+        }catch(e){}
+        return [v||''];
+      });
       var colEmpleado = values.map(function(r){return [r[1]];});
       var colConsola = values.map(function(r){return [r[2]];});
       var colDinero = values.map(function(r){return [r[3]];});
@@ -59,11 +74,23 @@ function doPost(e){
   sheet.setColumnWidth(9,120);
   sheet.setColumnWidth(10,600);
     }catch(e){}
-    var totalsRow=startRow+values.length;sheet.getRange(totalsRow,2).setValue('Total');
+    var totalsRow=startRow+values.length;
+    // place 'Total' under Fecha column (C)
+    sheet.getRange(totalsRow,3).setValue('Total');
     var totalUses=(payload.totals&&payload.totals.totalUses!=null)?payload.totals.totalUses:values.length;
     var totalMoney=(payload.totals&&payload.totals.totalMoney!=null)?payload.totals.totalMoney:values.reduce(function(a,b){return a+(Number(b[3])||0);},0);
-  sheet.getRange(totalsRow,5).setValue(totalUses);sheet.getRange(totalsRow,6).setValue(totalMoney);
-  try{sheet.getRange(totalsRow,5,1,2).setFontWeight('bold');sheet.getRange(totalsRow,6).setNumberFormat('#,##0.00');}catch(e){}
+    // total time minutes provided by frontend (optional)
+    var totalTimeMin = (payload.totals && payload.totals.totalTimeMinutes != null) ? payload.totals.totalTimeMinutes : null;
+    // write totals: uses -> Consola (column E=5), money -> Dinero (F=6), time -> Tiempo (G=7)
+    sheet.getRange(totalsRow,5).setValue(totalUses);
+    sheet.getRange(totalsRow,6).setValue(totalMoney);
+    try{sheet.getRange(totalsRow,5,1,2).setFontWeight('bold');sheet.getRange(totalsRow,6).setNumberFormat('#,##0.00');}catch(e){}
+    if(totalTimeMin != null){
+      var hrs = Math.floor(totalTimeMin/60); var mins = totalTimeMin % 60;
+      var timeStr = (hrs>0? (hrs+' h '):'') + (mins>0? (mins+' min'):'');
+      sheet.getRange(totalsRow,7).setValue(timeStr);
+      try{ sheet.getRange(totalsRow,7).setFontWeight('bold'); }catch(e){}
+    }
   // avoid auto-resizing columns because it may shrink date column and produce "#####" in Excel
     var url='https://docs.google.com/spreadsheets/d/'+ss.getId()+'/export?format=xlsx';
     return ContentService.createTextOutput(JSON.stringify({ok:true,downloadUrl:url,fileId:ss.getId()})).setMimeType(ContentService.MimeType.JSON);
