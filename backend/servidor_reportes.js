@@ -38,7 +38,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
 // Configuración: URL del Apps Script Web App (server-side proxy). Puedes sobreescribir con variable de entorno SHEETS_WEBAPP_URL
-const SHEETS_WEBAPP_URL = process.env.SHEETS_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbwl4CAW0eBxnwUgKYf9Eyk8zZQwziVgXYRlpJTVR4ZQb_wdOsLVNL0wZ4Uw1ZVemo_k/exec';
+const SHEETS_WEBAPP_URL = process.env.SHEETS_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbxFsDBA31zGgEwcn4hf_wn3HpIcoH9zMxAYjis8zzQ3861QzouN3c1bNWwJZULFGYwB/exec';
 
 // Utilidades para leer y guardar archivos JSON individuales
 const dataDir = __dirname + '/data';
