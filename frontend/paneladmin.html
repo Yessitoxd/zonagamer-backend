@@ -1287,7 +1287,7 @@
             const payload = {
                 // you can optionally pass templateId here; otherwise set in Apps Script
                 title: `Reporte ${start}` + (start !== end ? ` - ${end}` : ''),
-                summary: { dayReportCellF5: `C$ ${totalMoney.toFixed(2)}`, dayTotalCellF8: `C$ ${totalMoney.toFixed(2)}` },
+                summary: { dayReportCellF5: start, dayTotalCellF8: `C$ ${totalMoney.toFixed(2)}` },
                 rows: rows,
                 totals: { totalUses: totalUses, totalMoney: totalMoney }
             };

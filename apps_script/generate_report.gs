@@ -7,7 +7,15 @@ function doPost(e){
     var copy=DriveApp.getFileById(templateId).makeCopy('Reporte - '+(payload.title||new Date().toISOString()));
     var ss=SpreadsheetApp.openById(copy.getId());
     var sheet=ss.getSheets()[0];
-    try{sheet.getRange('H5').setValue((payload.summary&&payload.summary.dayReportCellF5)||'');}catch(e){}
+    try{
+      var h5 = (payload.summary&&payload.summary.dayReportCellF5) || '';
+      if(typeof h5 === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(h5)){
+        sheet.getRange('H5').setValue(new Date(h5+'T00:00:00'));
+        sheet.getRange('H5').setNumberFormat('dd/mm/yyyy');
+      } else {
+        sheet.getRange('H5').setValue(h5);
+      }
+    }catch(e){}
     try{sheet.getRange('H8').setValue((payload.summary&&payload.summary.dayTotalCellF8)||'');}catch(e){}
     var startRow=17;var values=[];(payload.rows||[]).forEach(function(r){
       var fechaVal = r.fecha || '';
@@ -42,14 +50,14 @@ function doPost(e){
       }catch(e){}
     }
     try{
-      sheet.setColumnWidth(3,140);
-      sheet.setColumnWidth(4,180);
-      sheet.setColumnWidth(5,140);
-      sheet.setColumnWidth(6,120);
-      sheet.setColumnWidth(7,100);
-      sheet.setColumnWidth(8,100);
-      sheet.setColumnWidth(9,100);
-      sheet.setColumnWidth(10,400);
+  sheet.setColumnWidth(3,220);
+  sheet.setColumnWidth(4,220);
+  sheet.setColumnWidth(5,160);
+  sheet.setColumnWidth(6,140);
+  sheet.setColumnWidth(7,120);
+  sheet.setColumnWidth(8,120);
+  sheet.setColumnWidth(9,120);
+  sheet.setColumnWidth(10,600);
     }catch(e){}
     var totalsRow=startRow+values.length;sheet.getRange(totalsRow,2).setValue('Total');
     var totalUses=(payload.totals&&payload.totals.totalUses!=null)?payload.totals.totalUses:values.length;
