@@ -4,7 +4,9 @@ function doPost(e){
     var payload=JSON.parse(e.postData.contents);
     var templateId=payload.templateId||TEMPLATE_SPREADSHEET_ID;
     if(!templateId)return ContentService.createTextOutput(JSON.stringify({error:'Missing templateId'})).setMimeType(ContentService.MimeType.JSON);
-  var copyName = payload.title ? payload.title : ('Reporte - ' + new Date().toISOString());
+  var copyName = payload.title ? String(payload.title) : ('Reporte - ' + new Date().toISOString());
+  // sanitize duplicate words like 'Reporte Reporte' -> 'Reporte'
+  try{ copyName = copyName.replace(/(Reporte)\s+\1/gi,'$1'); }catch(e){}
   var copy=DriveApp.getFileById(templateId).makeCopy(copyName);
     var ss=SpreadsheetApp.openById(copy.getId());
     var sheet=ss.getSheets()[0];
@@ -44,7 +46,11 @@ function doPost(e){
       });
       var colEmpleado = values.map(function(r){return [r[1]];});
       var colConsola = values.map(function(r){return [r[2]];});
-      var colDinero = values.map(function(r){return [r[3]];});
+      // Convert dinero to string with currency to avoid Excel showing #### if column too narrow
+      var colDinero = values.map(function(r){
+        try{ if(typeof r[3] === 'number') return ['C$ ' + Number(r[3]).toFixed(2)]; }catch(e){}
+        return [r[3]];
+      });
       var colTiempo = values.map(function(r){return [r[4]];});
       var colInicio = values.map(function(r){return [r[5]];});
       var colFin = values.map(function(r){return [r[6]];});
@@ -58,21 +64,24 @@ function doPost(e){
       sheet.getRange(startRow,9,values.length,1).setValues(colFin);
       sheet.getRange(startRow,10,values.length,1).setValues(colComentario);
       try{
-        sheet.getRange(startRow,3,values.length,1).setNumberFormat('dd/mm/yyyy');
-        sheet.getRange(startRow,6,values.length,1).setNumberFormat('#,##0.00');
-        sheet.getRange(startRow,10,values.length,1).setWrap(true);
-  for(var i=0;i<values.length;i++){ try{ sheet.setRowHeight(startRow+i,60); }catch(er){} }
+        // Fecha rows are already text in dd/mm/yyyy; ensure wrap and vertical align
+        sheet.getRange(startRow,3,values.length,1).setWrap(true).setVerticalAlignment('top');
+        // dinero written as text (C$ ...), but also set column to left align
+        sheet.getRange(startRow,6,values.length,1).setHorizontalAlignment('right');
+        sheet.getRange(startRow,10,values.length,1).setWrap(true).setVerticalAlignment('top');
+        for(var i=0;i<values.length;i++){ try{ sheet.setRowHeight(startRow+i,66); }catch(er){} }
       }catch(e){}
     }
     try{
-  sheet.setColumnWidth(3,220);
-  sheet.setColumnWidth(4,220);
-  sheet.setColumnWidth(5,160);
-  sheet.setColumnWidth(6,140);
-  sheet.setColumnWidth(7,120);
-  sheet.setColumnWidth(8,120);
-  sheet.setColumnWidth(9,120);
-  sheet.setColumnWidth(10,600);
+  // widen columns to reduce risk of '####' and truncation in Excel
+  sheet.setColumnWidth(3,280); // Fecha
+  sheet.setColumnWidth(4,220); // Empleado
+  sheet.setColumnWidth(5,180); // Consola
+  sheet.setColumnWidth(6,180); // Dinero
+  sheet.setColumnWidth(7,140); // Tiempo
+  sheet.setColumnWidth(8,140); // Inicio
+  sheet.setColumnWidth(9,140); // Fin
+  sheet.setColumnWidth(10,900); // Comentario
     }catch(e){}
     var totalsRow=startRow+values.length;
     // place 'Total' under Fecha column (C)
@@ -81,6 +90,23 @@ function doPost(e){
     var totalMoney=(payload.totals&&payload.totals.totalMoney!=null)?payload.totals.totalMoney:values.reduce(function(a,b){return a+(Number(b[3])||0);},0);
     // total time minutes provided by frontend (optional)
     var totalTimeMin = (payload.totals && payload.totals.totalTimeMinutes != null) ? payload.totals.totalTimeMinutes : null;
+    // if totalTimeMin is not provided, try to compute from rows (tiempo field) by attempting to parse numbers like '90 min' or '1 h 30 m'
+    if(totalTimeMin == null){
+      try{
+        totalTimeMin = 0;
+        for(var ri=0; ri<values.length; ri++){
+          var t = values[ri][4];
+          if(!t) continue;
+          if(typeof t === 'number') { totalTimeMin += Math.round(t); continue; }
+          var str = String(t).toLowerCase();
+          var m = str.match(/(\d+)\s*min/);
+          if(m) { totalTimeMin += parseInt(m[1],10); continue; }
+          var mh = str.match(/(\d+)\s*h(?:oras?)?\s*(\d+)?/);
+          if(mh){ var h = parseInt(mh[1],10); var mm = mh[2]?parseInt(mh[2],10):0; totalTimeMin += h*60 + mm; continue; }
+        }
+        if(totalTimeMin === 0) totalTimeMin = null;
+      }catch(e){ totalTimeMin = null; }
+    }
     // write totals: uses -> Consola (column E=5), money -> Dinero (F=6), time -> Tiempo (G=7)
     sheet.getRange(totalsRow,5).setValue(totalUses);
     sheet.getRange(totalsRow,6).setValue(totalMoney);
