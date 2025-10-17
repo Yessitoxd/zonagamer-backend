@@ -785,7 +785,9 @@
             const list = document.getElementById('embeddedSessionsList');
             if (!embedded || !titleEl || !startInput || !endInput || !list) return;
             // Set title and default dates (today)
-            const today = new Date().toISOString().slice(0,10);
+            let today;
+            try { today = new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0]; }
+            catch { today = new Date().toISOString().slice(0,10); }
             titleEl.textContent = `${type.toUpperCase()} #${number} — Reporte`;
             startInput.value = today;
             endInput.value = today;
@@ -839,10 +841,8 @@
                     if (!iso) return '-';
                     const d = new Date(iso);
                     if (!isNaN(d.getTime())) {
-                        const hh = String(d.getHours()).padStart(2,'0');
-                        const mm = String(d.getMinutes()).padStart(2,'0');
-                        const ss = String(d.getSeconds()).padStart(2,'0');
-                        return `${hh}:${mm}:${ss}`;
+                        const prefers12h = /am|pm/i.test(new Date().toLocaleTimeString());
+                        return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: prefers12h });
                     }
                     // si no es parseable, intenta extraer hora si existe
                     if (typeof iso === 'string') {

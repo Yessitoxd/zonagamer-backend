@@ -554,12 +554,47 @@
     </div>
     
     <script>
+    var alarmSound = null;
     const body = document.body;
     document.addEventListener('DOMContentLoaded', async () => {
         const mainPanel = document.getElementById('mainPanel');
         const usernameDisplay = document.getElementById('usernameDisplay');
         const sidebar = document.getElementById('sidebar');
         const logoutBtn = document.getElementById('logoutBtn');
+        // Init alarm element and unlock audio on first gesture
+        try {
+            const alarmEl = document.getElementById('alarm-sound');
+            if (alarmEl) {
+                window.alarmSound = alarmEl;
+                alarmSound = alarmEl;
+            }
+            let audioUnlocked = false;
+            const unlockAudioOnce = () => {
+                if (audioUnlocked || !window.alarmSound) return;
+                try {
+                    window.alarmSound.muted = true;
+                    const p = window.alarmSound.play();
+                    if (p && typeof p.then === 'function') {
+                        p.then(() => {
+                            window.alarmSound.pause();
+                            window.alarmSound.currentTime = 0;
+                            window.alarmSound.muted = false;
+                            audioUnlocked = true;
+                        }).catch(() => {
+                            // ignore
+                        });
+                    } else {
+                        window.alarmSound.pause();
+                        window.alarmSound.currentTime = 0;
+                        window.alarmSound.muted = false;
+                        audioUnlocked = true;
+                    }
+                } catch (e) {
+                    // ignore
+                }
+            };
+            document.addEventListener('pointerdown', unlockAudioOnce, { once: true, capture: true });
+        } catch {}
         let employeeName = 'Empleado';
         try {
             const r = await fetch('https://zonagamer-backend.onrender.com/session', { credentials: 'include' });
@@ -582,6 +617,8 @@
         usernameDisplay.textContent = employeeName;
         mainPanel.style.display = 'flex';
         body.style.flexDirection = 'row';
+    // Cargar ganancias (intenta backend, luego fallback a localStorage)
+    try { await loadEarnings(); } catch (e) { /* ignore */ }
         // Mensaje de bienvenida solo en consola
         if (employeeName && employeeName !== 'Empleado') {
             console.log(`¡Bienvenido, ${employeeName}! Autenticación exitosa.`);
@@ -607,6 +644,24 @@
             try { await fetch('https://zonagamer-backend.onrender.com/session', { method: 'DELETE', credentials: 'include' }); } catch {}
             window.location.href = 'Index.html';
         };
+
+        // Daily earnings reset watcher (America/Managua)
+        try {
+            const getDateNicaISO = () => {
+                try {
+                    return new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0];
+                } catch { return new Date().toISOString().slice(0,10); }
+            };
+            let lastNicaDate = getDateNicaISO();
+            setInterval(() => {
+                const nowDate = getDateNicaISO();
+                if (nowDate !== lastNicaDate) {
+                    lastNicaDate = nowDate;
+                    totalEarnings = 0;
+                    if (typeof updateEarningsDisplay === 'function') updateEarningsDisplay();
+                }
+            }, 30000);
+        } catch {}
     });
 
 
@@ -784,24 +839,49 @@
             });
         }
 
-        function loadEarnings() {
-            // TODO: Migrar earnings a backend si es necesario
-            const storedEarnings = 0;
-            const storedDate = null;
-            const todayISO = getFechaNicaragua();
+    async function loadEarnings() {
+            // Persistir ganancias localmente por día (America/Managua)
+            try {
+                const KEY = 'zg_earnings';
+                const DATE_KEY = 'zg_earnings_date';
+                const stored = localStorage.getItem(KEY);
+                const storedDate = localStorage.getItem(DATE_KEY);
+                let todayISO;
+                try { todayISO = new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0]; }
+                catch { todayISO = new Date().toISOString().slice(0,10); }
 
-            const parsedEarnings = parseFloat(storedEarnings);
-            totalEarnings = (storedEarnings !== null && !isNaN(parsedEarnings)) ? parsedEarnings : 0;
+                // Primero intentar cargar desde backend si existe sesión
+                let loaded = false;
+                try {
+                    const res = await fetch('https://zonagamer-backend.onrender.com/earnings?date=' + todayISO, { credentials: 'include' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && typeof data.amount !== 'undefined') {
+                            totalEarnings = Number(data.amount) || 0;
+                            // sincronizar localStorage
+                            localStorage.setItem(KEY, String(totalEarnings));
+                            localStorage.setItem(DATE_KEY, todayISO);
+                            loaded = true;
+                        }
+                    }
+                } catch (e) {
+                    // backend no disponible o sin sesión; caeremos al fallback local
+                }
 
-            // Si la fecha guardada no es formato ISO o es un día diferente, reiniciar
-            const isISODate = /^\d{4}-\d{2}-\d{2}$/.test(storedDate);
-            if (!isISODate || storedDate !== todayISO) {
+                if (!loaded) {
+                    const parsed = parseFloat(stored);
+                    totalEarnings = (!isNaN(parsed) ? parsed : 0);
+
+                    if (!storedDate || storedDate !== todayISO) {
+                        // Si no hay fecha guardada o es otra fecha, reiniciar también almacenamiento
+                        totalEarnings = 0;
+                        localStorage.setItem(KEY, '0');
+                        localStorage.setItem(DATE_KEY, todayISO);
+                    }
+                }
+            } catch (e) {
+                console.warn('loadEarnings failed', e);
                 totalEarnings = 0;
-                // TODO: Guardar earnings en backend si es necesario
-                // Mostrar mensaje de reinicio
-                setTimeout(() => {
-                    alert('El total de ganancias se ha reiniciado porque la fecha anterior era ' + (storedDate || 'vacía') + ' y hoy es ' + todayISO);
-                }, 500);
             }
             updateEarningsDisplay();
         }
@@ -814,18 +894,30 @@
             const newPrice = parseFloat(price);
             if (!isNaN(newPrice)) {
                 totalEarnings += newPrice;
-                // TODO: Guardar earnings en backend si es necesario
+                // Guardar en localStorage con fecha Managua
+                try {
+                    const KEY = 'zg_earnings';
+                    const DATE_KEY = 'zg_earnings_date';
+                    localStorage.setItem(KEY, String(totalEarnings));
+                    const todayISO = new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0];
+                    localStorage.setItem(DATE_KEY, todayISO);
+                    // También intentar persistir en backend; fallar silenciosamente y conservar localStorage
+                    try {
+                        fetch('https://zonagamer-backend.onrender.com/earnings', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ dateISO: todayISO, amount: totalEarnings })
+                        }).catch(() => {});
+                    } catch (e) {}
+                } catch (e) { console.warn('addEarnings local save failed', e); }
                 updateEarningsDisplay();
             }
         }
 
         function stopAlarmAndShaking(card) {
             if (card.alarmSound) {
-                try {
-                    card.alarmSound.loop = false;
-                    card.alarmSound.pause();
-                    card.alarmSound.currentTime = 0;
-                } catch (e) { console.warn('alarmSound control failed', e); }
+                try { card.alarmSound.pause(); card.alarmSound.currentTime = 0; card.alarmSound.loop = false; } catch (e) { console.warn('alarmSound control failed', e); }
             }
             card.classList.remove('shaking');
         }
@@ -1065,11 +1157,10 @@
                 if (card.sessionStartTime && card.totalSeconds > 0) {
                     const elapsedActiveTime = (new Date().getTime() - card.sessionStartTime - card.totalPausedTime) / 1000;
                     const remainingDuration = (card.totalSeconds - elapsedActiveTime) * 1000;
-                    const endTime = new Date(new Date().getTime() + remainingDuration);
-                    const endHours = String(endTime.getHours()).padStart(2, '0');
-                    const endMinutes = String(endTime.getMinutes()).padStart(2, '0');
-                    const endSeconds = String(endTime.getSeconds()).padStart(2, '0');
-                    endTimeDisplay.textContent = `Termina a las ${endHours}:${endMinutes}:${endSeconds}`;
+                    const endTime = new Date(Date.now() + remainingDuration);
+                    const prefers12h = /am|pm/i.test(new Date().toLocaleTimeString());
+                    const ts = endTime.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: prefers12h });
+                    endTimeDisplay.textContent = `Termina a las ${ts}`;
                 } else {
                     endTimeDisplay.textContent = '';
                 }

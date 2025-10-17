@@ -163,6 +163,14 @@ const sessionSchema = new mongoose.Schema({
   comment: String
 });
 const Session = mongoose.model('Session', sessionSchema);
+// Modelo para ganancias diarias por usuario (username + dateISO)
+const earningSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  dateISO: { type: String, required: true }, // YYYY-MM-DD (zona Managua en cliente)
+  amount: { type: Number, default: 0 }
+});
+earningSchema.index({ username: 1, dateISO: 1 }, { unique: true });
+const Earning = mongoose.model('Earning', earningSchema);
 const employeeSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -479,6 +487,48 @@ app.get('/acciones', (req, res) => {
       console.error('Error al leer sesiones desde MongoDB:', err);
       res.status(500).json({ error: 'Error al leer sesiones desde MongoDB' });
     });
+});
+
+// Endpoints para persistir "Dinero obtenido" por empleado y por día
+// GET /earnings?date=YYYY-MM-DD -> retorna { username, dateISO, amount }
+app.get('/earnings', async (req, res) => {
+  try {
+    if (!session || !session.username) return res.status(401).json({ error: 'No authenticated' });
+    const username = session.username;
+    const dateISO = req.query.date || null;
+    if (!dateISO) {
+      // Buscar la entrada más reciente del usuario
+      const last = await Earning.findOne({ username }).sort({ dateISO: -1 });
+      return res.json(last || { username, dateISO: null, amount: 0 });
+    }
+    const found = await Earning.findOne({ username, dateISO });
+    if (!found) return res.json({ username, dateISO, amount: 0 });
+    res.json(found);
+  } catch (e) {
+    console.error('GET /earnings error:', e);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+// POST /earnings { dateISO: 'YYYY-MM-DD', amount: 123 }
+// Crea o actualiza la entrada para el usuario de la sesión
+app.post('/earnings', async (req, res) => {
+  try {
+    if (!session || !session.username) return res.status(401).json({ error: 'No authenticated' });
+    const username = session.username;
+    const { dateISO, amount } = req.body || {};
+    if (!dateISO || typeof amount === 'undefined') return res.status(400).json({ error: 'Faltan parámetros' });
+    const numeric = Number(amount) || 0;
+    const updated = await Earning.findOneAndUpdate(
+      { username, dateISO },
+      { $set: { amount: numeric } },
+      { upsert: true, new: true }
+    );
+    res.json({ ok: true, earning: updated });
+  } catch (e) {
+    console.error('POST /earnings error:', e);
+    res.status(500).json({ error: 'Error interno' });
+  }
 });
 
 // Solo debe haber un app.listen al final del archivo
