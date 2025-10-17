@@ -254,6 +254,27 @@ app.get('/consoles', (req, res) => {
       res.status(500).json({ error: 'Error al leer consolas desde MongoDB' });
     });
 });
+
+// Obtener sesiones filtradas por consola y fecha (query params)
+// Ej: /sessions?consoleType=ps5&consoleNumber=1&date=2025-10-16
+app.get('/sessions', async (req, res) => {
+  try {
+    const { consoleType, consoleNumber, date } = req.query;
+    const filter = {};
+    if (consoleType) filter.consoleType = consoleType;
+    if (consoleNumber) filter.consoleNumber = Number(consoleNumber);
+    // Si se pasa date, buscamos sesiones cuyo startDate caiga en esa fecha (string contiene date) — asumiendo formato ISO o similar
+    if (date) {
+      // Busca startDate que contenga la fecha (por seguridad, soporta varios formatos)
+      filter.startDate = { $regex: date };
+    }
+    const sessions = await Session.find(filter).sort({ startDate: 1 });
+    res.json(sessions);
+  } catch (err) {
+    console.error('Error al leer sesiones filtradas:', err);
+    res.status(500).json({ error: 'Error al leer sesiones filtradas' });
+  }
+});
 // Endpoint para añadir una consola (POST)
 app.post('/consoles', async (req, res) => {
   try {
