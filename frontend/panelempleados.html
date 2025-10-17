@@ -617,8 +617,7 @@
     let sourceCard = null;
     let totalEarnings = 0;
 
-    // Mapa para evitar duplicados cuando se hace cambio de consola: { 'ps5#1': { time: <ms>, from: 'ps5 #1', to: 'switch #2' } }
-    const recentTransfers = {};
+    // Eliminado sistema de deduplicación por transferencias; no registraremos eventos 'cambio'.
 
     // Unificar claves de localStorage con paneladmins.html
     let consoles = [];
@@ -879,20 +878,8 @@
             // Guardar estado de ambas consolas
             if (typeof targetCard.saveCardState === 'function') targetCard.saveCardState();
             if (typeof sourceCard.saveCardState === 'function') sourceCard.saveCardState();
-            // Registrar transferencia reciente para evitar duplicados
-            const sourceKey = `${sourceCard.dataset.consoleType}#${sourceCard.dataset.consoleNumber}`;
-            recentTransfers[sourceKey] = { time: Date.now(), from: `${sourceCard.dataset.consoleType} #${sourceCard.dataset.consoleNumber}`, to: `${targetCard.dataset.consoleType} #${targetCard.dataset.consoleNumber}` };
-            // Guardar sesión de cambio en la consola destino
-            saveSessionData(
-                targetCard.dataset.consoleType,
-                targetCard.dataset.consoleNumber,
-                targetCard.elapsedSeconds,
-                targetCard.currentSessionEarnings,
-                targetCard.sessionStartTime,
-                'cambio',
-                `Cambio de ${sourceCard.dataset.consoleType} #${sourceCard.dataset.consoleNumber} a ${targetCard.dataset.consoleType} #${targetCard.dataset.consoleNumber}`,
-                `${sourceCard.dataset.consoleType} #${sourceCard.dataset.consoleNumber}`
-            );
+            // No guardar sesión de 'cambio'. Guardar comentario para usarlo al finalizar
+            targetCard.transferComment = `Cambio de ${sourceCard.dataset.consoleType} #${sourceCard.dataset.consoleNumber} a ${targetCard.dataset.consoleType} #${targetCard.dataset.consoleNumber}`;
             sourceCard.resetCard();
             transferMode = false;
             transferMessage.style.display = 'none';
@@ -944,7 +931,11 @@
             populatePriceSelects(card);
 
             // --- Persistencia de estado ---
-            const getCardKey = () => `consoleState_${card.dataset.consoleType}_${card.dataset.consoleNumber}`;
+            function getDateNicaISO() {
+                try {
+                    return new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0];
+                } catch (e) { return new Date().toISOString().slice(0,10); }
+            }
             let lastStateSaveAt = 0;
             const SAVE_EVERY_MS = 5000; // throttle network saves to once every 5s per card
             async function saveCardState() {
@@ -958,6 +949,8 @@
                     currentSessionEarnings: card.currentSessionEarnings,
                     timeSelectValue: timeSelect.value,
                     priceDisplay: card.querySelector('.price-display').textContent,
+                    savedAt: Date.now(),
+                    dayISO: getDateNicaISO(),
                     ui: {
                         startReset: !card.startResetBtns.classList.contains('hidden'),
                         pauseResume: !card.pauseResumeBtns.classList.contains('hidden'),
@@ -979,6 +972,8 @@
                     console.error('Error guardando estado de consola en backend:', e);
                 }
             }
+            // Exponer para transferencia
+            card.saveCardState = saveCardState;
             function saveCardStateThrottled(force = false) {
                 const now = Date.now();
                 if (!force && (now - lastStateSaveAt) < SAVE_EVERY_MS) return;
@@ -992,6 +987,11 @@
                     if (!res.ok) return;
                     const state = await res.json();
                     if (!state) return;
+                    // Si es estado de otro día (Managua), ignorarlo
+                    const todayNica = getDateNicaISO();
+                    if (state.dayISO && state.dayISO !== todayNica) {
+                        return;
+                    }
                     card.sessionStartTime = state.sessionStartTime;
                     card.totalSeconds = state.totalSeconds;
                     card.totalPausedTime = state.totalPausedTime;
@@ -1001,8 +1001,8 @@
                     card.currentSessionEarnings = state.currentSessionEarnings;
                     timeSelect.value = state.timeSelectValue || '';
                     card.querySelector('.price-display').textContent = state.priceDisplay || 'C$ 0';
-                    // UI
-                    if (state.ui) {
+                    // UI sólo si existe una sesión válida
+                    if (state.ui && state.sessionStartTime && state.totalSeconds > 0) {
                         card.startResetBtns.classList.toggle('hidden', !state.ui.startReset);
                         card.pauseResumeBtns.classList.toggle('hidden', !state.ui.pauseResume);
                         card.endBtns.classList.toggle('hidden', !state.ui.endBtns);
@@ -1048,28 +1048,7 @@
                 saveCardStateThrottled(true);
             }
 
-            // Fallback de alarma sin archivo de audio (Web Audio API)
-            function playWebBeep() {
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const o = ctx.createOscillator();
-                    const g = ctx.createGain();
-                    o.type = 'sine';
-                    o.frequency.value = 880;
-                    o.connect(g); g.connect(ctx.destination);
-                    g.gain.setValueAtTime(0.001, ctx.currentTime);
-                    g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
-                    o.start();
-                    setTimeout(() => { g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2); o.stop(ctx.currentTime + 0.25); }, 250);
-                } catch {}
-            }
-            async function tryPlayAlarm() {
-                if (card.alarmSound) {
-                    try { card.alarmSound.loop = true; await card.alarmSound.play(); return true; } catch (e) { console.warn('alarm play failed', e); }
-                }
-                playWebBeep();
-                return false;
-            }
+            // Usar SIEMPRE Alarm.wav en bucle hasta que se finalice o se añada más tiempo
 
             card.checkTimeAndAct = function() {
                 const now = new Date().getTime();
@@ -1081,9 +1060,11 @@
                     card.endBtns.classList.remove('hidden');
                     card.startResetBtns.classList.add('hidden');
                     card.classList.add('shaking');
-                    tryPlayAlarm();
+                    if (card.alarmSound) {
+                        try { card.alarmSound.loop = true; card.alarmSound.play(); } catch (e) { console.warn('alarm play failed', e); }
+                    }
                 }
-                card.elapsedSeconds = Math.floor(elapsedActiveTime);
+                card.elapsedSeconds = Math.min(card.totalSeconds || 0, Math.max(0, Math.floor(elapsedActiveTime)));
                 timeLeftDisplay.textContent = formatTime(card.elapsedSeconds);
                 // El derecho debe ser ESTÁTICO: siempre mostrar el tiempo total asignado
                 timeRightDisplay.textContent = formatTime(card.totalSeconds);
@@ -1127,11 +1108,58 @@
                 card.currentSessionEarnings = 0;
                 card.classList.remove('transfer-mode', 'target-mode', 'disabled-card');
                 card.removeEventListener('click', handleTransferClick);
-                // TODO: Eliminar estado de consola en backend si es necesario
+                // Eliminar estado en backend para no restaurar sesiones antiguas al reingresar
+                try { fetch(`https://zonagamer-backend.onrender.com/console-state/${card.dataset.consoleNumber}`, { method: 'DELETE' }); } catch (e) {}
             }
 
-            // Al cargar la página, restaurar estado
-            loadCardState();
+            // Al cargar la página, restaurar estado y reanudar visualmente si estaba corriendo
+            ;(async () => {
+                await loadCardState();
+                if (card.sessionStartTime && card.totalSeconds > 0) {
+                    const now = Date.now();
+                    const isPaused = !!card.pauseStartTime;
+                    const elapsedActiveTime = (now - card.sessionStartTime - (card.totalPausedTime || 0)) / 1000;
+                    const overdueMs = (elapsedActiveTime - card.totalSeconds) * 1000;
+                    if (elapsedActiveTime >= card.totalSeconds) {
+                        // Ya se pasó del tiempo: mostrar estado finalizado y alarma
+                        // Si la tarjeta está vencida por más de 2 minutos, limpiar automáticamente
+                        if (overdueMs > 2 * 60 * 1000) {
+                            card.resetCard();
+                            return;
+                        }
+                        card.elapsedSeconds = Math.floor(card.totalSeconds);
+                        timeLeftDisplay.textContent = formatTime(card.elapsedSeconds);
+                        timeRightDisplay.textContent = formatTime(card.totalSeconds);
+                        progressBar.style.width = '100%';
+                        clearInterval(card.intervalId);
+                        card.pauseResumeBtns.classList.add('hidden');
+                        card.endBtns.classList.remove('hidden');
+                        card.startResetBtns.classList.add('hidden');
+                        card.classList.add('shaking');
+                        if (card.alarmSound) {
+                            try { card.alarmSound.loop = true; card.alarmSound.play(); } catch (e) { console.warn('alarm play failed', e); }
+                        }
+                    } else if (!isPaused) {
+                        card.elapsedSeconds = Math.max(0, Math.floor(elapsedActiveTime));
+                        timeLeftDisplay.textContent = formatTime(card.elapsedSeconds);
+                        timeRightDisplay.textContent = formatTime(card.totalSeconds);
+                        progressBar.style.width = `${(card.elapsedSeconds / (card.totalSeconds || 1)) * 100}%`;
+                        clearInterval(card.intervalId);
+                        card.intervalId = setInterval(card.checkTimeAndAct, 500);
+                        card.startResetBtns.classList.add('hidden');
+                        card.pauseResumeBtns.classList.remove('hidden');
+                        card.endBtns.classList.add('hidden');
+                        card.querySelector('.pause-btn').classList.remove('hidden');
+                        card.querySelector('.resume-btn').classList.add('hidden');
+                    } else {
+                        // Estaba en pausa: solo refrescar displays sin arrancar intervalo
+                        card.elapsedSeconds = Math.max(0, Math.floor(elapsedActiveTime));
+                        timeLeftDisplay.textContent = formatTime(card.elapsedSeconds);
+                        timeRightDisplay.textContent = formatTime(card.totalSeconds);
+                        progressBar.style.width = `${(card.elapsedSeconds / (card.totalSeconds || 1)) * 100}%`;
+                    }
+                }
+            })();
 
             timeSelect.addEventListener('change', (event) => {
                 const priceDisplay = card.querySelector('.price-display');
@@ -1180,7 +1208,9 @@
             endSessionBtn.addEventListener('click', () => {
                 const selectedOption = timeSelect.options[timeSelect.selectedIndex];
                 const selectedPrice = parseFloat(selectedOption.dataset.price);
-                // Siempre guardar solo 'Se detuvo' como comentario
+                // Comentario de finalización normal (incluir cambio si lo hubo)
+                const baseComment = 'Finalizado';
+                const fullComment = card.transferComment ? `${baseComment}; ${card.transferComment}` : baseComment;
                 saveSessionData(
                     card.dataset.consoleType,
                     card.dataset.consoleNumber,
@@ -1188,7 +1218,7 @@
                     selectedPrice,
                     card.sessionStartTime,
                     'detener',
-                    'Finalizado'
+                    fullComment
                 );
                 addEarnings(selectedPrice);
                 card.resetCard();
@@ -1197,7 +1227,9 @@
             endEarlyBtn.addEventListener('click', () => {
                 const selectedOption = timeSelect.options[timeSelect.selectedIndex];
                 const selectedPrice = parseFloat(selectedOption.dataset.price);
-                // Siempre guardar solo 'Se detuvo' como comentario
+                // Comentario de fin anticipado (incluir cambio si lo hubo)
+                const baseComment = 'Se detuvo antes de tiempo';
+                const fullComment = card.transferComment ? `${baseComment}; ${card.transferComment}` : baseComment;
                 saveSessionData(
                     card.dataset.consoleType,
                     card.dataset.consoleNumber,
@@ -1205,7 +1237,7 @@
                     selectedPrice,
                     card.sessionStartTime,
                     'detener',
-                    'Se detuvo antes de tiempo'
+                    fullComment
                 );
                 addEarnings(selectedPrice);
                 card.resetCard();
@@ -1293,22 +1325,11 @@
             let commentArg = arguments.length > 6 ? arguments[6] : undefined;
             let fromConsole = arguments.length > 7 ? arguments[7] : undefined;
 
-            // Si la acción es 'detener' y existe una transferencia reciente desde esta consola, OMITIR el guardado
-            if (action === 'detener') {
-                const key = `${consoleType}#${consoleNumber}`;
-                const info = recentTransfers[key];
-                if (info && (Date.now() - info.time) < 60000) {
-                    // fue transferida recientemente, no crear un 'detener' duplicado
-                    console.log('[saveSessionData] omitiendo detener por transferencia reciente', key, info);
-                    return;
-                }
-            }
-
             // Construir comentario
             let comment = commentArg || '';
             if (!comment) {
                 if (action === 'detener') comment = 'Se detuvo antes de tiempo';
-                else if (action === 'cambio' && fromConsole) comment = `Cambio de ${fromConsole} a ${consoleType} #${consoleNumber}`;
+                // Ya no registramos eventos 'cambio'. Sólo se añade como comentario al finalizar.
             }
 
             const newSession = {

@@ -782,16 +782,21 @@
                     return `Reporte del día ${sStart.split('-').reverse().join('-')} al día ${sEnd.split('-').reverse().join('-')}`;
                 }
 
+                // Agrupar por fecha en zona America/Managua para evitar desfase de un día
                 const byDate = {};
+                const toNicaDateKey = (iso) => {
+                    if (!iso) return 'unknown';
+                    try {
+                        const d = new Date(iso);
+                        if (isNaN(d.getTime())) return 'unknown';
+                        // Obtener YYYY-MM-DD en zona Managua usando locale sueco (ISO-like)
+                        const parts = d.toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ');
+                        return parts[0];
+                    } catch { return 'unknown'; }
+                };
                 sessions.forEach(s => {
                     const raw = s.startDate || s.createdAt || '';
-                    let key = null;
-                    if (typeof raw === 'string' && raw.length >= 10) key = raw.slice(0,10);
-                    else {
-                        const d = new Date(raw);
-                        if (!isNaN(d.getTime())) key = d.toISOString().slice(0,10);
-                        else key = 'unknown';
-                    }
+                    const key = typeof raw === 'string' && raw.length >= 10 ? toNicaDateKey(raw) : toNicaDateKey(raw);
                     if (!byDate[key]) byDate[key] = [];
                     byDate[key].push(s);
                 });

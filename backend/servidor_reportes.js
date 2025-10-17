@@ -63,6 +63,18 @@ app.post('/console-state/:number', async (req, res) => {
   }
 });
 
+// Eliminar el estado de una consola (p.ej., al restablecer la tarjeta)
+app.delete('/console-state/:number', async (req, res) => {
+  try {
+    const { number } = req.params;
+    await ConsoleState.deleteOne({ consoleNumber: Number(number) });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error al eliminar estado de consola:', err);
+    res.status(500).json({ error: 'Error al eliminar estado de consola' });
+  }
+});
+
 // --- Manejo de sesión persistente ---
 let session = null;
 app.get('/session', (req, res) => {
