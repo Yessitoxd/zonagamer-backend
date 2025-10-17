@@ -86,6 +86,44 @@
   }
 }
 
+/* Mobile-specific layout tweaks: horizontal top sidebar and smaller end-time below title */
+@media (max-width: 600px) {
+  /* Make sidebar fixed on the top and horizontal so it doesn't block main content */
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: auto !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    padding: 8px 6px !important;
+    box-shadow: none !important;
+    z-index: 9999 !important;
+  }
+  /* Buttons inside sidebar should flow horizontally */
+  .sidebar .sidebar-btn {
+    flex: 0 0 auto !important;
+    margin-right: 8px !important;
+  }
+  /* Push main content down so the fixed sidebar doesn't cover it */
+  .main-container, .main-content {
+    padding-top: 72px !important; /* adjust if your sidebar is taller */
+  }
+
+  /* Move the end-time text under the console title and make it smaller */
+  .console-card {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .console-card .console-item { order: 1; }
+  .console-card .end-time-display { order: 2; font-size: 0.9rem !important; margin-top: 6px !important; color: #e6f7ff !important; align-self: flex-start !important; padding-left: 6px !important; }
+  .console-card .timer-progress-wrapper { order: 3; }
+}
+
 /* Mejoras generales para scroll horizontal en tablas */
 .desglose-reporte table, .main-content table, .main-grid-content table {
   display: block;
