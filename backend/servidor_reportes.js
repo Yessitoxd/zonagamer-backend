@@ -37,6 +37,9 @@ app.use((req, res, next) => {
 app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
+// Configuración: URL del Apps Script Web App (server-side proxy). Puedes sobreescribir con variable de entorno SHEETS_WEBAPP_URL
+const SHEETS_WEBAPP_URL = process.env.SHEETS_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbwl4CAW0eBxnwUgKYf9Eyk8zZQwziVgXYRlpJTVR4ZQb_wdOsLVNL0wZ4Uw1ZVemo_k/exec';
+
 // Utilidades para leer y guardar archivos JSON individuales
 const dataDir = __dirname + '/data';
 function readJson(file) {
@@ -218,6 +221,33 @@ const adminSchema = new mongoose.Schema({
   role: { type: String, default: 'admin' }
 });
 const Admin = mongoose.model('Admin', adminSchema);
+
+// Proxy endpoint: recibe el payload del frontend y lo reenvía al Apps Script Web App
+app.post('/generate-report', async (req, res) => {
+  try {
+    const payload = req.body;
+    if (!payload) return res.status(400).json({ error: 'Falta payload' });
+
+    // Use global fetch if available (Node 18+), otherwise try to require node-fetch
+    let fetchFn = global.fetch;
+    if (!fetchFn) {
+      try { fetchFn = require('node-fetch'); } catch (e) { }
+    }
+    if (!fetchFn) return res.status(500).json({ error: 'fetch no disponible en el servidor' });
+
+    const r = await fetchFn(SHEETS_WEBAPP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const text = await r.text();
+    // intentar parsear JSON de respuesta
+    try { const json = JSON.parse(text); return res.json(json); } catch (e) { return res.status(r.status || 200).send(text); }
+  } catch (err) {
+    console.error('Error proxying generate-report:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 function leerDatos() {
   try {
     const datos = JSON.parse(fs.readFileSync(__dirname + '/datos.json', 'utf8'));

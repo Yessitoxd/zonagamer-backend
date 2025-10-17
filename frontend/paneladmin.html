@@ -363,7 +363,7 @@
                     <div id="consolesWrapper">
                         <!-- Horizontal scroller de consolas (predeterminado) -->
                         <div id="selectedConsolesBar" style="display:none;overflow-x:auto;white-space:nowrap;gap:12px;padding-bottom:8px;margin-bottom:12px;"><!-- kept for compatibility but unused --></div>
-                        <div id="consolesList" style="display:flex;gap:24px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:12px;"></div>
+                        <div id="consolesList" style="display:flex;gap:24px;overflow-x:auto;overflow-y:visible;flex-wrap:nowrap;padding:12px 8px;align-items:center;"></div>
                     </div>
                     <!-- Embedded report area: will be populated when a console is opened -->
                     <div id="embeddedConsoleReport" style="display:none;margin-top:18px;background:rgba(0,0,0,0.12);padding:14px;border-radius:12px;">
@@ -386,7 +386,15 @@
                 </div>
                 <div id="mainbox-session-descargar" class="mainbox-session" style="display:none;">
                     <h2>Descargar Reporte</h2>
-                    <div style="color:#fff;opacity:0.7;">Aquí podrás descargar el reporte generado.</div>
+                    <div style="color:#fff;opacity:0.9;margin-bottom:12px;">Selecciona una fecha o un rango y pulsa <strong>Descargar XLS</strong>. Esto usará una plantilla de Google Sheets (Apps Script) para generar el archivo.</div>
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+                        <label style="color:#fff;">Desde</label>
+                        <input type="date" id="downloadStartDate" style="padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#fff;" />
+                        <label style="color:#fff;">Hasta</label>
+                        <input type="date" id="downloadEndDate" style="padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#fff;" />
+                        <button id="downloadReportBtn" class="neon-btn" style="width:auto;padding:8px 12px;">Descargar XLS</button>
+                    </div>
+                    <div id="downloadStatus" style="color:#fff;opacity:0.85;"></div>
                 </div>
                 <div id="mainbox-session-consolas" class="mainbox-session" style="display:none;">
                     <h2>Añadir Consolas</h2>
@@ -470,7 +478,7 @@
                 list.innerHTML = consolas.map((c) => {
                     let nombre = c.type === 'ps5' ? 'Play Station 5' : (c.type === 'switch' ? 'Nintendo Switch' : c.type);
                     let img = c.type === 'ps5' ? 'PS5.png' : (c.type === 'switch' ? 'Switch.png' : '');
-                    return `<div class="console-card-admin" data-type="${c.type}" data-number="${c.number}" style="background:rgba(44,18,80,0.95);border:2px solid #81fde9;border-radius:16px;padding:16px 14px 10px 14px;min-width:160px;max-width:200px;display:flex;flex-direction:column;align-items:center;box-shadow:0 0 8px #3ef2e6;position:relative;cursor:pointer;transition:transform 150ms ease, box-shadow 150ms ease;">
+                    return `<div class="console-card-admin" data-type="${c.type}" data-number="${c.number}" style="flex:0 0 auto;background:rgba(44,18,80,0.95);border:2px solid #81fde9;border-radius:16px;padding:16px 14px 10px 14px;min-width:160px;max-width:200px;display:flex;flex-direction:column;align-items:center;box-shadow:0 0 8px #3ef2e6;position:relative;cursor:pointer;transition:transform 150ms ease, box-shadow 150ms ease;">
                         ${img ? `<img src='${img}' alt='${nombre}' style='width:80px;height:auto;margin-bottom:10px;'>` : ''}
                         <div style='font-weight:700;font-size:18px;color:#81fde9;margin-bottom:4px;'>${nombre} <span style="color:#fff;font-size:15px;">#${c.number}</span></div>
                     </div>`;
@@ -507,27 +515,8 @@
         }
 
         function addToSelectedBar(type, number) {
-            const key = `${type}#${number}`;
-            const bar = document.getElementById('selectedConsolesBar');
-            if (!bar) return;
-            // avoid duplicates
-            if (bar.querySelector(`[data-key="${key}"]`)) return;
-            const card = document.createElement('div');
-            card.dataset.key = key;
-            card.style.cssText = 'display:inline-flex;align-items:center;gap:8px;padding:8px 12px;margin-right:8px;background:rgba(129,253,233,0.06);border:1px solid rgba(129,253,233,0.12);border-radius:12px;cursor:pointer;min-width:120px;';
-            const label = document.createElement('div');
-            label.style.color = '#81fde9';
-            label.style.fontWeight = '700';
-            label.textContent = `${type.toUpperCase()} #${number}`;
-            // compact pill: just label (clickable) - no visible remove button
-            card.appendChild(label);
-            card.onclick = async () => {
-                // when clicking the item in bar, load its report (fallback dates to today Managua)
-                await renderSessionsInMainbox(type, number, document.getElementById('embeddedStartDate').value || new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0], document.getElementById('embeddedEndDate').value || new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0]);
-            };
-            bar.appendChild(card);
-            // Do not show a clear-all button in the bar to keep the UI clean.
-            bar.style.display = 'flex';
+            // No mostrar las píldoras: esta función ahora es intencionalmente NO-OP para evitar acumulación visual
+            return;
         }
 
         function clearSelectedConsoles() {
@@ -861,6 +850,8 @@
                 backBtn.style.display = 'none';
                 backBtn.onclick = function() { clearSelectedConsoles(); };
             }
+            // Ensure selectedConsolesBar remains hidden (we disabled pill UI in this build)
+            const _scb2 = document.getElementById('selectedConsolesBar'); if (_scb2) _scb2.style.display = 'none';
             // Fetch handler
             document.getElementById('embeddedFetchBtn').onclick = async function() {
                 const start = startInput.value;
@@ -1006,18 +997,18 @@
                                     <td style="padding:8px;text-align:right;vertical-align:top;">${tiempo}</td>
                                     <td style="padding:8px;vertical-align:top;">${inicio}</td>
                                     <td style="padding:8px;vertical-align:top;">${fin}</td>
-                                    <td style="padding:8px;vertical-align:top;">${comentario}</td>
+                                    <td style="padding:8px;vertical-align:top;white-space:nowrap;overflow:visible;text-overflow:ellipsis;max-width:420px;">${comentario || ''}</td>
                                 </tr>`;
                     }
                 }
 
-                // Añadir fila de totales al final: Totales en columna Fecha y Consola en '---'
+                // Añadir fila de totales al final: colocar conteo de usos en columna Consola
                 html += `<tr class="totals-row" style="font-weight:700;background:rgba(255,255,255,0.03);">
-                            <td style="padding:8px;white-space:nowrap;width:18%;">Totales (${totalUses})</td>
+                            <td style="padding:8px;white-space:nowrap;width:18%;">Totales</td>
                             <td style="padding:8px;width:14%;"></td>
-                            <td style="padding:8px;width:12%;text-align:left;">---</td>
-                            <td style="padding:8px;text-align:right;width:14%;">${formatMoney(totalMoney)}</td>
-                            <td style="padding:8px;text-align:right;width:12%;">${formatDurationFriendly(totalSeconds)}</td>
+                            <td style="padding:8px;width:12%;text-align:left;">${totalUses}</td>
+                            <td style="padding:8px;text-align:right;width:14%">${formatMoney(totalMoney)}</td>
+                            <td style="padding:8px;text-align:right;width:12%">${formatDurationFriendly(totalSeconds)}</td>
                             <td style="padding:8px;width:12%;"></td>
                             <td style="padding:8px;width:10%;"></td>
                             <td style="padding:8px;width:8%;"></td>
@@ -1257,6 +1248,63 @@
         };
 
     })();
+    </script>
+    <script>
+    // CONFIG: URL del Apps Script Web App (insertado)
+    const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwl4CAW0eBxnwUgKYf9Eyk8zZQwziVgXYRlpJTVR4ZQb_wdOsLVNL0wZ4Uw1ZVemo_k/exec'; // Web App URL
+
+    document.getElementById('downloadReportBtn').addEventListener('click', async function(){
+        const start = document.getElementById('downloadStartDate').value;
+        const end = document.getElementById('downloadEndDate').value || start;
+        const status = document.getElementById('downloadStatus');
+        status.textContent = '';
+        if (!start) return alert('Selecciona al menos la fecha inicio');
+        if (new Date(start) > new Date(end)) return alert('La fecha inicio debe ser anterior o igual a la fecha fin');
+        if (!SHEETS_WEBAPP_URL) return alert('No está configurada la URL del WebApp de Google Sheets en el cliente. Pega la URL en la variable SHEETS_WEBAPP_URL.');
+
+        status.textContent = 'Recopilando sesiones...';
+        try {
+            // fetch sessions for the range (all consoles)
+            const res = await fetch(`https://zonagamer-backend.onrender.com/sessions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+            const sessions = await res.json();
+            if (!Array.isArray(sessions)) throw new Error('Respuesta inválida del servidor');
+
+            // build rows matching columns C..J
+            const rows = sessions.map(s => ({
+                fecha: (s.startDate||'').slice(0,10),
+                empleado: s.username || s.employee || '',
+                consola: `${(s.consoleType||s.type||'').toString().toUpperCase()} ${s.consoleNumber || s.number || ''}`.trim(),
+                dinero: Number(s.totalPrice||s.total||0),
+                tiempo: s.durationFriendly || (s.durationSeconds? Math.round((s.durationSeconds||0)/60) + ' min' : ''),
+                inicio: (s.startDate||'').slice(11,16) || '',
+                fin: (s.endDate||'').slice(11,16) || '',
+                comentario: s.comment || s.notes || ''
+            }));
+
+            const totalUses = sessions.length;
+            const totalMoney = sessions.reduce((a,b) => a + (Number(b.totalPrice||b.total||0)||0), 0);
+
+            const payload = {
+                // you can optionally pass templateId here; otherwise set in Apps Script
+                title: `Reporte ${start}` + (start !== end ? ` - ${end}` : ''),
+                summary: { dayReportCellF5: `C$ ${totalMoney.toFixed(2)}`, dayTotalCellF8: `C$ ${totalMoney.toFixed(2)}` },
+                rows: rows,
+                totals: { totalUses: totalUses, totalMoney: totalMoney }
+            };
+
+            status.textContent = 'Generando archivo en Sheets...';
+            // Post to backend proxy to avoid CORS issues
+            const postRes = await fetch('/generate-report', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+            const json = await postRes.json();
+            if (json.error) throw new Error(json.error);
+            status.innerHTML = 'Archivo listo: <a href="' + json.downloadUrl + '" target="_blank">Abrir XLSX</a>';
+            // optionally auto-open
+            window.open(json.downloadUrl, '_blank');
+        } catch (err) {
+            console.error(err);
+            status.textContent = 'Error: ' + (err.message || err);
+        }
+    });
     </script>
 </body>
 </html>
