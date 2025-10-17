@@ -1,10 +1,10 @@
-// Requires y configuración inicial
+﻿// Requires y configuraciÃ³n inicial
 const express = require('express');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const cors = require('cors');
 
-// Backend mínimo para exponer acciones.json como API pública
+// Backend mÃ­nimo para exponer acciones.json como API pÃºblica
 const app = express();
 // CORS robusto para Netlify y localhost
 const allowedOrigins = [
@@ -14,7 +14,7 @@ const allowedOrigins = [
 ];
 const corsOptions = {
   origin: function (origin, callback) {
-    // permitir peticiones sin origin (como curl/postman) o si está en la lista
+    // permitir peticiones sin origin (como curl/postman) o si estÃ¡ en la lista
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -27,7 +27,7 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
-// Manejo universal de preflight sin usar comodín '*' que rompe en algunas versiones de path-to-regexp
+// Manejo universal de preflight sin usar comodÃ­n '*' que rompe en algunas versiones de path-to-regexp
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
@@ -37,9 +37,9 @@ app.use((req, res, next) => {
 app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
-// Configuración: URL del Apps Script Web App (server-side proxy). Puedes sobreescribir con variable de entorno SHEETS_WEBAPP_URL
-// Actualizado al deployment público verificado por el usuario (2025-10-17)
-const SHEETS_WEBAPP_URL = process.env.SHEETS_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbyapzaxotiYvs5OfqiEzxBETCim6sb3t8A4zXwrbzd7yEThvi1TBJx_2PIBI-uxjPY/exec';
+// ConfiguraciÃ³n: URL del Apps Script Web App (server-side proxy). Puedes sobreescribir con variable de entorno SHEETS_WEBAPP_URL
+// Actualizado al deployment pÃºblico verificado por el usuario (2025-10-17)
+const SHEETS_WEBAPP_URL = process.env.SHEETS_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbzgOJ4E6OfdY-_mtlwi7GENES8ujy06hc46MnKG7n_fo8DzY3XbBiGKO933XKUUzJro/exec';
 
 // Utilidades para leer y guardar archivos JSON individuales
 const dataDir = __dirname + '/data';
@@ -54,13 +54,13 @@ function writeJson(file, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-// Modelo para el estado de cada consola (usa mongoose, por eso va después de require)
+// Modelo para el estado de cada consola (usa mongoose, por eso va despuÃ©s de require)
 const consoleStateSchema = new mongoose.Schema({
   consoleNumber: { type: Number, required: true, unique: true },
   state: { type: Object, required: true }
 });
 const ConsoleState = mongoose.model('ConsoleState', consoleStateSchema);
-// Obtener el estado de una consola por número
+// Obtener el estado de una consola por nÃºmero
 app.get('/console-state/:number', async (req, res) => {
   try {
     const { number } = req.params;
@@ -73,7 +73,7 @@ app.get('/console-state/:number', async (req, res) => {
   }
 });
 
-// Guardar o actualizar el estado de una consola por número
+// Guardar o actualizar el estado de una consola por nÃºmero
 app.post('/console-state/:number', async (req, res) => {
   try {
     const { number } = req.params;
@@ -103,7 +103,7 @@ app.delete('/console-state/:number', async (req, res) => {
   }
 });
 
-// --- Manejo de sesión persistente ---
+// --- Manejo de sesiÃ³n persistente ---
 let session = null;
 app.get('/session', (req, res) => {
   res.json(session ? { username: session.username, role: session.role } : {});
@@ -114,19 +114,19 @@ app.post('/session', async (req, res) => {
     if (!username || !password || !role) return res.status(400).json({ ok: false, error: 'Faltan credenciales' });
     if (role === 'trabajador') {
       const emp = await Employee.findOne({ username });
-      if (!emp || emp.password !== password) return res.status(401).json({ ok: false, error: 'Credenciales inválidas' });
+      if (!emp || emp.password !== password) return res.status(401).json({ ok: false, error: 'Credenciales invÃ¡lidas' });
       session = { username: emp.username, role: emp.role || 'trabajador' };
       return res.json({ ok: true, session });
     } else if (role === 'admin') {
       const adm = await Admin.findOne({ username });
-      if (!adm || adm.password !== password) return res.status(401).json({ ok: false, error: 'Credenciales inválidas' });
+      if (!adm || adm.password !== password) return res.status(401).json({ ok: false, error: 'Credenciales invÃ¡lidas' });
       session = { username: adm.username, role: adm.role || 'admin' };
       return res.json({ ok: true, session });
     }
-    return res.status(400).json({ ok: false, error: 'Rol inválido' });
+    return res.status(400).json({ ok: false, error: 'Rol invÃ¡lido' });
   } catch (e) {
     console.error('POST /session error:', e);
-    res.status(500).json({ ok: false, error: 'Error interno en sesión' });
+    res.status(500).json({ ok: false, error: 'Error interno en sesiÃ³n' });
   }
 });
 app.delete('/session', (req, res) => {
@@ -134,7 +134,7 @@ app.delete('/session', (req, res) => {
   res.json({ ok: true });
 });
 
-// Ruta raíz para comprobar que el backend está vivo
+// Ruta raÃ­z para comprobar que el backend estÃ¡ vivo
 app.get('/', (req, res) => {
   res.send('API Zonagamer Backend funcionando');
 });
@@ -144,11 +144,11 @@ app.get('/health', async (req, res) => {
   try {
     const uptime = process.uptime();
     const mongooseState = mongoose.connection.readyState; // 0 disconnected, 1 connected, 2 connecting, 3 disconnecting
-    // opcional: intentar un ping sencillo a Mongo si está conectado
+    // opcional: intentar un ping sencillo a Mongo si estÃ¡ conectado
     let mongoPing = null;
     if (mongooseState === 1) {
       try {
-        // usar comando admin ping si está disponible
+        // usar comando admin ping si estÃ¡ disponible
         const admin = mongoose.connection.db.admin();
         await admin.ping();
         mongoPing = true;
@@ -161,7 +161,7 @@ app.get('/health', async (req, res) => {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
-// Conexión a MongoDB Atlas
+// ConexiÃ³n a MongoDB Atlas
 console.log("Valor de process.env.Zonagamer:", process.env.Zonagamer);
 console.log("Valor de process.env.MONGODB_URI:", process.env.MONGODB_URI);
 mongoose.connect(process.env.MONGODB_URI, {
@@ -169,7 +169,7 @@ mongoose.connect(process.env.MONGODB_URI, {
   useUnifiedTopology: true
 })
 .then(() => console.log('Conectado a MongoDB Atlas'))
-.catch(err => console.error('Error de conexión:', err));
+.catch(err => console.error('Error de conexiÃ³n:', err));
 
 // Modelo Admins
 // Modelo Consoles
@@ -246,7 +246,7 @@ const adminSchema = new mongoose.Schema({
 });
 const Admin = mongoose.model('Admin', adminSchema);
 
-// Proxy endpoint: recibe el payload del frontend y lo reenvía al Apps Script Web App
+// Proxy endpoint: recibe el payload del frontend y lo reenvÃ­a al Apps Script Web App
 app.post('/generate-report', async (req, res) => {
   try {
     const payload = req.body;
@@ -309,10 +309,10 @@ app.put('/consoles/:id', async (req, res) => {
     if (!type || !number) {
       return res.status(400).json({ message: 'Faltan datos requeridos.' });
     }
-    // Validar que no exista otra consola con ese número
+    // Validar que no exista otra consola con ese nÃºmero
     const existe = await Console.findOne({ number, _id: { $ne: id } });
     if (existe) {
-      return res.status(400).json({ message: 'Ya existe una consola con ese número.' });
+      return res.status(400).json({ message: 'Ya existe una consola con ese nÃºmero.' });
     }
     let name = type === 'ps5' ? 'Play Station 5' : (type === 'switch' ? 'Nintendo Switch' : type);
     let img = type === 'ps5' ? 'PS5.png' : (type === 'switch' ? 'Switch.png' : '');
@@ -412,28 +412,28 @@ app.get('/sessions', async (req, res) => {
     res.status(500).json({ error: 'Error al leer sesiones filtradas' });
   }
 });
-// Endpoint para añadir una consola (POST)
+// Endpoint para aÃ±adir una consola (POST)
 app.post('/consoles', async (req, res) => {
   try {
     const { type, number } = req.body;
     if (!type || !number) {
       return res.status(400).json({ message: 'Faltan datos requeridos.' });
     }
-    // Validar que no exista una consola con ese número
+    // Validar que no exista una consola con ese nÃºmero
     const existe = await Console.findOne({ number });
     if (existe) {
-      return res.status(400).json({ message: 'Ya existe una consola con ese número.' });
+      return res.status(400).json({ message: 'Ya existe una consola con ese nÃºmero.' });
     }
-    // Crear nombre e imagen automáticamente
+    // Crear nombre e imagen automÃ¡ticamente
     let name = type === 'ps5' ? 'Play Station 5' : (type === 'switch' ? 'Nintendo Switch' : type);
     let img = type === 'ps5' ? 'PS5.png' : (type === 'switch' ? 'Switch.png' : '');
     const nuevaConsola = new Console({ type, number, name, img });
     await nuevaConsola.save();
-    console.log('POST /consoles - nueva consola añadida:', { type, number });
-    res.status(201).json({ message: 'Consola añadida correctamente.' });
+    console.log('POST /consoles - nueva consola aÃ±adida:', { type, number });
+    res.status(201).json({ message: 'Consola aÃ±adida correctamente.' });
   } catch (err) {
-    console.error('Error al añadir consola:', err);
-    res.status(500).json({ message: 'Error al añadir consola.' });
+    console.error('Error al aÃ±adir consola:', err);
+    res.status(500).json({ message: 'Error al aÃ±adir consola.' });
   }
 });
 app.put('/consoles', async (req, res) => {
@@ -441,11 +441,11 @@ app.put('/consoles', async (req, res) => {
   const body = req.body;
   console.log('PUT /consoles payload type:', Array.isArray(body) ? 'array' : typeof body);
   if (!Array.isArray(body)) {
-    return res.status(400).json({ error: 'Payload inválido: se espera un arreglo de consolas para sobrescribir. Usa POST para añadir una consola individual.' });
+    return res.status(400).json({ error: 'Payload invÃ¡lido: se espera un arreglo de consolas para sobrescribir. Usa POST para aÃ±adir una consola individual.' });
   }
   // Validar elementos
   const valid = body.every(c => c && typeof c.type === 'string' && typeof c.number === 'number');
-  if (!valid) return res.status(400).json({ error: 'Array de consolas inválido. Cada elemento debe tener { type: string, number: number }' });
+  if (!valid) return res.status(400).json({ error: 'Array de consolas invÃ¡lido. Cada elemento debe tener { type: string, number: number }' });
   try {
     // Normalizar nombre e imagen antes de insertar
     const toInsert = body.map(c => ({
@@ -484,10 +484,10 @@ app.post('/prices', async (req, res) => {
     }
     const nuevoPrecio = new Price({ console, duration, price });
     await nuevoPrecio.save();
-    res.status(201).json({ message: 'Precio añadido correctamente.' });
+    res.status(201).json({ message: 'Precio aÃ±adido correctamente.' });
   } catch (err) {
-    console.error('Error al añadir precio:', err);
-    res.status(500).json({ message: 'Error al añadir precio.' });
+    console.error('Error al aÃ±adir precio:', err);
+    res.status(500).json({ message: 'Error al aÃ±adir precio.' });
   }
 });
 
@@ -531,19 +531,19 @@ app.delete('/prices/:id', async (req, res) => {
 // Endpoint para recibir y guardar acciones nuevas (sesiones)
 app.post('/accion', (req, res) => {
   const nuevaAccion = req.body;
-  // Adjuntar empleado desde la sesión del backend si existe
+  // Adjuntar empleado desde la sesiÃ³n del backend si existe
   if (session && session.username && session.role === 'trabajador' && !nuevaAccion.employee) {
     nuevaAccion.employee = session.username;
   }
   if (!nuevaAccion || !nuevaAccion.startDate) {
-    return res.status(400).json({ error: 'Acción inválida' });
+    return res.status(400).json({ error: 'AcciÃ³n invÃ¡lida' });
   }
   const mongoSession = new Session(nuevaAccion);
   mongoSession.save()
-    .then(() => res.json({ ok: true, msg: 'Acción guardada en MongoDB' }))
+    .then(() => res.json({ ok: true, msg: 'AcciÃ³n guardada en MongoDB' }))
     .catch(err => {
-      console.error('Error al guardar sesión en MongoDB:', err);
-      res.status(500).json({ error: 'Error al guardar sesión en MongoDB' });
+      console.error('Error al guardar sesiÃ³n en MongoDB:', err);
+      res.status(500).json({ error: 'Error al guardar sesiÃ³n en MongoDB' });
     });
 });
 
@@ -557,7 +557,7 @@ app.get('/acciones', (req, res) => {
     });
 });
 
-// Endpoints para persistir "Dinero obtenido" por empleado y por día
+// Endpoints para persistir "Dinero obtenido" por empleado y por dÃ­a
 // GET /earnings?date=YYYY-MM-DD -> retorna { username, dateISO, amount }
 app.get('/earnings', async (req, res) => {
   try {
@@ -565,7 +565,7 @@ app.get('/earnings', async (req, res) => {
     const username = session.username;
     const dateISO = req.query.date || null;
     if (!dateISO) {
-      // Buscar la entrada más reciente del usuario
+      // Buscar la entrada mÃ¡s reciente del usuario
       const last = await Earning.findOne({ username }).sort({ dateISO: -1 });
       return res.json(last || { username, dateISO: null, amount: 0 });
     }
@@ -579,13 +579,13 @@ app.get('/earnings', async (req, res) => {
 });
 
 // POST /earnings { dateISO: 'YYYY-MM-DD', amount: 123 }
-// Crea o actualiza la entrada para el usuario de la sesión
+// Crea o actualiza la entrada para el usuario de la sesiÃ³n
 app.post('/earnings', async (req, res) => {
   try {
     if (!session || !session.username) return res.status(401).json({ error: 'No authenticated' });
     const username = session.username;
     const { dateISO, amount } = req.body || {};
-    if (!dateISO || typeof amount === 'undefined') return res.status(400).json({ error: 'Faltan parámetros' });
+    if (!dateISO || typeof amount === 'undefined') return res.status(400).json({ error: 'Faltan parÃ¡metros' });
     const numeric = Number(amount) || 0;
     const updated = await Earning.findOneAndUpdate(
       { username, dateISO },
