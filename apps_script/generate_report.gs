@@ -5,8 +5,14 @@ function doPost(e){
     var templateId=payload.templateId||TEMPLATE_SPREADSHEET_ID;
     if(!templateId)return ContentService.createTextOutput(JSON.stringify({error:'Missing templateId'})).setMimeType(ContentService.MimeType.JSON);
   var copyName = payload.title ? String(payload.title) : ('Reporte - ' + new Date().toISOString());
-  // sanitize duplicate words like 'Reporte Reporte' -> 'Reporte'
-  try{ copyName = copyName.replace(/(Reporte)\s+\1/gi,'$1'); }catch(e){}
+  // normalize separators and trim
+  try{ copyName = copyName.replace(/[\t\r\n]+/g,' ').replace(/\s+/g,' ').trim(); }catch(e){}
+  // sanitize duplicate 'reporte' occurrences like 'Reporte - Reporte' or 'reporte reporte'
+  try{
+    copyName = copyName.replace(/(reporte)(\s*[-–—]?\s*reporte)+/ig,'$1');
+    // capitalize 'Reporte' first occurrence
+    copyName = copyName.replace(/reporte/i, function(m){ return m.charAt(0).toUpperCase() + m.slice(1).toLowerCase(); });
+  }catch(e){}
   var copy=DriveApp.getFileById(templateId).makeCopy(copyName);
     var ss=SpreadsheetApp.openById(copy.getId());
     var sheet=ss.getSheets()[0];
@@ -16,7 +22,9 @@ function doPost(e){
         sheet.getRange('H5').setValue(new Date(h5+'T00:00:00'));
         sheet.getRange('H5').setNumberFormat('dd/mm/yyyy');
       } else {
+        // if it's a range label (contains ' al ' or '-' between dates), write as text and wrap
         sheet.getRange('H5').setValue(h5);
+        try{ if(typeof h5 === 'string' && (h5.indexOf(' al ')>=0 || h5.indexOf('-')>=0)) sheet.getRange('H5').setWrap(true); }catch(e){}
       }
     }catch(e){}
     try{sheet.getRange('H8').setValue((payload.summary&&payload.summary.dayTotalCellF8)||'');}catch(e){}
@@ -74,14 +82,14 @@ function doPost(e){
     }
     try{
   // widen columns to reduce risk of '####' and truncation in Excel
-  sheet.setColumnWidth(3,280); // Fecha
-  sheet.setColumnWidth(4,220); // Empleado
-  sheet.setColumnWidth(5,180); // Consola
-  sheet.setColumnWidth(6,180); // Dinero
-  sheet.setColumnWidth(7,140); // Tiempo
-  sheet.setColumnWidth(8,140); // Inicio
-  sheet.setColumnWidth(9,140); // Fin
-  sheet.setColumnWidth(10,900); // Comentario
+  sheet.setColumnWidth(3,320); // Fecha (más ancho)
+  sheet.setColumnWidth(4,240); // Empleado
+  sheet.setColumnWidth(5,200); // Consola
+  sheet.setColumnWidth(6,220); // Dinero
+  sheet.setColumnWidth(7,160); // Tiempo
+  sheet.setColumnWidth(8,160); // Inicio
+  sheet.setColumnWidth(9,160); // Fin
+  sheet.setColumnWidth(10,1100); // Comentario (muy ancho)
     }catch(e){}
     var totalsRow=startRow+values.length;
     // place 'Total' under Fecha column (C)
@@ -111,12 +119,14 @@ function doPost(e){
     sheet.getRange(totalsRow,5).setValue(totalUses);
     sheet.getRange(totalsRow,6).setValue(totalMoney);
     try{sheet.getRange(totalsRow,5,1,2).setFontWeight('bold');sheet.getRange(totalsRow,6).setNumberFormat('#,##0.00');}catch(e){}
-    if(totalTimeMin != null){
-      var hrs = Math.floor(totalTimeMin/60); var mins = totalTimeMin % 60;
-      var timeStr = (hrs>0? (hrs+' h '):'') + (mins>0? (mins+' min'):'');
+    // always write total time cell (show '0 min' if none)
+    try{
+      var tt = totalTimeMin != null ? totalTimeMin : 0;
+      var hrs = Math.floor(tt/60); var mins = tt % 60;
+      var timeStr = (hrs>0? (hrs+' h '):'') + (mins>0? (mins+' min'):(hrs>0?'':'0 min'));
       sheet.getRange(totalsRow,7).setValue(timeStr);
-      try{ sheet.getRange(totalsRow,7).setFontWeight('bold'); }catch(e){}
-    }
+      sheet.getRange(totalsRow,7).setFontWeight('bold');
+    }catch(e){}
   // avoid auto-resizing columns because it may shrink date column and produce "#####" in Excel
     var url='https://docs.google.com/spreadsheets/d/'+ss.getId()+'/export?format=xlsx';
     return ContentService.createTextOutput(JSON.stringify({ok:true,downloadUrl:url,fileId:ss.getId()})).setMimeType(ContentService.MimeType.JSON);
