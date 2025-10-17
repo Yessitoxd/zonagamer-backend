@@ -27,7 +27,13 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+// Manejo universal de preflight sin usar comodín '*' que rompe en algunas versiones de path-to-regexp
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
 app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
