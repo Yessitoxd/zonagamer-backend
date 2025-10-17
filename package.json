@@ -1,9 +1,9 @@
 {
   "name": "zonagamer-backend",
   "version": "1.0.0",
-  "main": "servidor_reportes.js",
+  "main": "backend/servidor_reportes.js",
   "scripts": {
-    "start": "node servidor_reportes.js"
+    "start": "node backend/servidor_reportes.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

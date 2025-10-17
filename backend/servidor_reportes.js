@@ -68,20 +68,25 @@ let session = null;
 app.get('/session', (req, res) => {
   res.json(session ? { username: session.username, role: session.role } : {});
 });
-app.post('/session', (req, res) => {
-  const { username, role } = req.body;
-  let users = [];
-  if (role === 'admin') {
-    users = readJson('admins.json');
-  } else if (role === 'trabajador') {
-    users = readJson('employees.json');
-  }
-  const user = users.find(u => u.username === username);
-  if (user) {
-    session = { username: user.username, role: user.role };
-    res.json({ ok: true, session });
-  } else {
-    res.status(401).json({ ok: false, error: 'Usuario no válido' });
+app.post('/session', async (req, res) => {
+  try {
+    const { username, password, role } = req.body || {};
+    if (!username || !password || !role) return res.status(400).json({ ok: false, error: 'Faltan credenciales' });
+    if (role === 'trabajador') {
+      const emp = await Employee.findOne({ username });
+      if (!emp || emp.password !== password) return res.status(401).json({ ok: false, error: 'Credenciales inválidas' });
+      session = { username: emp.username, role: emp.role || 'trabajador' };
+      return res.json({ ok: true, session });
+    } else if (role === 'admin') {
+      const adm = await Admin.findOne({ username });
+      if (!adm || adm.password !== password) return res.status(401).json({ ok: false, error: 'Credenciales inválidas' });
+      session = { username: adm.username, role: adm.role || 'admin' };
+      return res.json({ ok: true, session });
+    }
+    return res.status(400).json({ ok: false, error: 'Rol inválido' });
+  } catch (e) {
+    console.error('POST /session error:', e);
+    res.status(500).json({ ok: false, error: 'Error interno en sesión' });
   }
 });
 app.delete('/session', (req, res) => {
@@ -110,6 +115,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Modelo Sessions
 const sessionSchema = new mongoose.Schema({
   clientName: String,
+  employee: String,
   consoleType: String,
   consoleNumber: Number,
   startDate: String,
@@ -259,15 +265,34 @@ app.get('/consoles', (req, res) => {
 // Ej: /sessions?consoleType=ps5&consoleNumber=1&date=2025-10-16
 app.get('/sessions', async (req, res) => {
   try {
-    const { consoleType, consoleNumber, date } = req.query;
-    const filter = {};
-    if (consoleType) filter.consoleType = consoleType;
-    if (consoleNumber) filter.consoleNumber = Number(consoleNumber);
-    // Si se pasa date, buscamos sesiones cuyo startDate caiga en esa fecha (string contiene date) — asumiendo formato ISO o similar
-    if (date) {
-      // Busca startDate que contenga la fecha (por seguridad, soporta varios formatos)
-      filter.startDate = { $regex: date };
+    const { consoleType, consoleNumber, date, start, end } = req.query;
+    const andFilter = [];
+    if (consoleType) andFilter.push({ consoleType });
+    if (consoleNumber) andFilter.push({ consoleNumber: Number(consoleNumber) });
+
+    if (start && end) {
+      // Build date strings [YYYY-MM-DD] inclusive using UTC to avoid TZ shifts
+      function toUTCDateParts(s) {
+        const [y, m, d] = s.split('-').map(Number);
+        return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+      }
+      const sDate = toUTCDateParts(start);
+      const eDate = toUTCDateParts(end);
+      const dates = [];
+      for (let d = new Date(sDate); d.getTime() <= eDate.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
+        const yy = d.getUTCFullYear();
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        dates.push(`${yy}-${mm}-${dd}`);
+      }
+      // Strict prefix match for speed/accuracy
+      const orClauses = dates.map(dt => ({ startDate: { $regex: `^${dt}` } }));
+      if (orClauses.length) andFilter.push({ $or: orClauses });
+    } else if (date) {
+      andFilter.push({ startDate: { $regex: `^${date}` } });
     }
+
+    const filter = andFilter.length ? { $and: andFilter } : {};
     const sessions = await Session.find(filter).sort({ startDate: 1 });
     res.json(sessions);
   } catch (err) {
@@ -394,11 +419,15 @@ app.delete('/prices/:id', async (req, res) => {
 // Endpoint para recibir y guardar acciones nuevas (sesiones)
 app.post('/accion', (req, res) => {
   const nuevaAccion = req.body;
+  // Adjuntar empleado desde la sesión del backend si existe
+  if (session && session.username && session.role === 'trabajador' && !nuevaAccion.employee) {
+    nuevaAccion.employee = session.username;
+  }
   if (!nuevaAccion || !nuevaAccion.startDate) {
     return res.status(400).json({ error: 'Acción inválida' });
   }
-  const session = new Session(nuevaAccion);
-  session.save()
+  const mongoSession = new Session(nuevaAccion);
+  mongoSession.save()
     .then(() => res.json({ ok: true, msg: 'Acción guardada en MongoDB' }))
     .catch(err => {
       console.error('Error al guardar sesión en MongoDB:', err);

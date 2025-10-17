@@ -353,6 +353,22 @@
                 <div id="mainbox-session-reporte" class="mainbox-session" style="display:block;">
                     <h2>Reporte General</h2>
                     <div id="consolesList" style="display:flex;flex-wrap:wrap;gap:24px;"></div>
+                    <div id="embeddedConsoleReport" style="display:none;margin-top:18px;background:rgba(0,0,0,0.12);padding:14px;border-radius:12px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <strong id="embeddedReportTitle" style="color:#81fde9;"></strong>
+                            <button id="embeddedBackBtn" style="background:transparent;border:1.5px solid #81fde9;color:#81fde9;padding:6px 10px;border-radius:8px;cursor:pointer;">Regresar</button>
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+                            <label style="min-width:84px;color:#fff;">Fecha inicio:</label>
+                            <input type="date" id="embeddedStartDate" style="padding:6px;border-radius:8px;border:1px solid #444;background:#fff;color:#000;" />
+                            <label style="min-width:72px;color:#fff;margin-left:6px;">Fecha fin:</label>
+                            <input type="date" id="embeddedEndDate" style="padding:6px;border-radius:8px;border:1px solid #444;background:#fff;color:#000;" />
+                            <button id="embeddedFetchBtn" style="padding:6px 12px;border-radius:8px;background:#81fde9;border:none;cursor:pointer;color:#000;font-weight:700;margin-left:6px;">Buscar</button>
+                        </div>
+                        <div id="embeddedSessionsList" style="color:#fff;max-height:360px;overflow:auto;">
+                            <div style="opacity:0.8;">Elige fechas y pulsa Buscar para ver sesiones.</div>
+                        </div>
+                    </div>
                 </div>
                 <div id="mainbox-session-descargar" class="mainbox-session" style="display:none;">
                     <h2>Descargar Reporte</h2>
@@ -425,7 +441,7 @@
                     card.addEventListener('click', async () => {
                         const type = card.dataset.type;
                         const number = card.dataset.number;
-                        openSessionsModal(type, number);
+                        openConsoleReportInMain(type, number);
                     });
                 });
 
@@ -679,6 +695,174 @@
                 if (errorMsg) errorMsg.textContent = 'Error inesperado en el login.';
             }
         });
+        // --- Embedded console report view helpers ---
+        let _currentEmbeddedConsole = null;
+        function openConsoleReportInMain(type, number) {
+            _currentEmbeddedConsole = { type, number };
+            const embedded = document.getElementById('embeddedConsoleReport');
+            const titleEl = document.getElementById('embeddedReportTitle');
+            const startInput = document.getElementById('embeddedStartDate');
+            const endInput = document.getElementById('embeddedEndDate');
+            const list = document.getElementById('embeddedSessionsList');
+            if (!embedded || !titleEl || !startInput || !endInput || !list) return;
+            const today = new Date().toISOString().slice(0,10);
+            titleEl.textContent = `${type.toUpperCase()} #${number} — Reporte`;
+            startInput.value = today;
+            endInput.value = today;
+            list.innerHTML = '<div style="opacity:0.8;">Elige fechas y pulsa Buscar para ver sesiones.</div>';
+            embedded.style.display = 'block';
+            document.getElementById('consolesList').style.filter = 'blur(1px)';
+            document.getElementById('embeddedBackBtn').onclick = restoreMainboxView;
+            document.getElementById('embeddedFetchBtn').onclick = async function() {
+                const start = startInput.value;
+                const end = endInput.value;
+                if (!start || !end) return alert('Completa ambas fechas.');
+                if (new Date(start) > new Date(end)) return alert('La fecha inicio debe ser anterior o igual a la fecha fin.');
+                list.innerHTML = '<div style="opacity:0.8;">Cargando sesiones...</div>';
+                await renderSessionsInMainbox(type, number, start, end);
+            };
+        }
+
+        async function renderSessionsInMainbox(type, number, start, end) {
+            const container = document.getElementById('embeddedSessionsList');
+            const titleEl = document.getElementById('embeddedReportTitle');
+            if (!container) return;
+            try {
+                const url = `https://zonagamer-backend.onrender.com/sessions?consoleType=${encodeURIComponent(type)}&consoleNumber=${encodeURIComponent(number)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+                const res = await fetch(url);
+                const sessions = await res.json();
+                if (!Array.isArray(sessions) || sessions.length === 0) {
+                    container.innerHTML = '<div style="opacity:0.8;">No se encontraron sesiones en ese rango.</div>';
+                    titleEl.textContent = formatReportTitle(type, start, end);
+                    return;
+                }
+
+                function formatDateISO(iso) {
+                    const d = new Date(iso);
+                    if (!isNaN(d.getTime())) {
+                        const dd = String(d.getDate()).padStart(2, '0');
+                        const mm = String(d.getMonth() + 1).padStart(2, '0');
+                        const yy = d.getFullYear();
+                        return `${dd}-${mm}-${yy}`;
+                    }
+                    if (typeof iso === 'string' && iso.length >= 10) {
+                        return iso.slice(8,10) + '-' + iso.slice(5,7) + '-' + iso.slice(0,4);
+                    }
+                    return iso || '-';
+                }
+                function formatTime(iso) {
+                    if (!iso) return '-';
+                    const d = new Date(iso);
+                    if (!isNaN(d.getTime())) {
+                        const hh = String(d.getHours()).padStart(2,'0');
+                        const mm = String(d.getMinutes()).padStart(2,'0');
+                        const ss = String(d.getSeconds()).padStart(2,'0');
+                        return `${hh}:${mm}:${ss}`;
+                    }
+                    if (typeof iso === 'string') {
+                        if (iso.length >= 19) return iso.slice(11,19);
+                        if (iso.length >= 16) return iso.slice(11,16) + ':00';
+                    }
+                    return '-';
+                }
+                function formatDurationFriendly(seconds) {
+                    if (!seconds && seconds !== 0) return '-';
+                    const mins = Math.round(seconds / 60);
+                    if (mins < 60) return `${mins} min`;
+                    const h = Math.floor(mins / 60);
+                    const m = mins % 60;
+                    return m === 0 ? `${h} h` : `${h} h ${m} m`;
+                }
+                function formatMoney(v) {
+                    if (typeof v === 'undefined' || v === null) return 'C$ 0';
+                    return 'C$ ' + Number(v).toFixed(2).replace('.00','');
+                }
+                function formatReportTitle(type, sStart, sEnd) {
+                    if (sStart === sEnd) return `Reporte del día ${sStart.split('-').reverse().join('-')}`;
+                    return `Reporte del día ${sStart.split('-').reverse().join('-')} al día ${sEnd.split('-').reverse().join('-')}`;
+                }
+
+                const byDate = {};
+                sessions.forEach(s => {
+                    const raw = s.startDate || s.createdAt || '';
+                    let key = null;
+                    if (typeof raw === 'string' && raw.length >= 10) key = raw.slice(0,10);
+                    else {
+                        const d = new Date(raw);
+                        if (!isNaN(d.getTime())) key = d.toISOString().slice(0,10);
+                        else key = 'unknown';
+                    }
+                    if (!byDate[key]) byDate[key] = [];
+                    byDate[key].push(s);
+                });
+
+                const dateKeys = Object.keys(byDate).filter(k => k !== 'unknown').sort();
+                if (byDate['unknown']) dateKeys.push('unknown');
+
+                let html = `
+                    <table style="width:100%;color:#fff;border-collapse:collapse;">
+                        <thead style="background:rgba(44,18,80,0.95);">
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+                                <th style="padding:8px;text-align:left;">Fecha</th>
+                                <th style="padding:8px;text-align:left;">Empleado</th>
+                                <th style="padding:8px;text-align:left;">Consola</th>
+                                <th style="padding:8px;text-align:right;">Dinero generado</th>
+                                <th style="padding:8px;text-align:right;">Tiempo</th>
+                                <th style="padding:8px;text-align:left;">Inicio</th>
+                                <th style="padding:8px;text-align:left;">Fin</th>
+                                <th style="padding:8px;text-align:left;">Comentario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                for (const dt of dateKeys) {
+                    const items = byDate[dt];
+                    items.sort((a,b) => {
+                        const ta = new Date(a.startDate || a.createdAt || 0).getTime();
+                        const tb = new Date(b.startDate || b.createdAt || 0).getTime();
+                        return ta - tb;
+                    });
+                    for (const s of items) {
+                        const fechaDisplay = dt === 'unknown' ? (s.startDate || '-') : formatDateISO(dt);
+                        const empleado = s.employee || s.worker || s.username || s.fromConsole || '-';
+                        const consola = (s.consoleType ? s.consoleType.toUpperCase() : '-') + (s.consoleNumber ? ' #' + s.consoleNumber : '');
+                        const dinero = formatMoney(s.totalPrice || s.total || 0);
+                        const tiempo = formatDurationFriendly(s.durationSeconds);
+                        const inicio = formatTime(s.startDate);
+                        const fin = formatTime(s.endDate);
+                        const comentario = s.comment || s.action || '';
+                        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                                    <td style="padding:8px;vertical-align:top;">${fechaDisplay}</td>
+                                    <td style="padding:8px;vertical-align:top;">${empleado}</td>
+                                    <td style="padding:8px;vertical-align:top;">${consola}</td>
+                                    <td style="padding:8px;text-align:right;vertical-align:top;">${dinero}</td>
+                                    <td style="padding:8px;text-align:right;vertical-align:top;">${tiempo}</td>
+                                    <td style="padding:8px;vertical-align:top;">${inicio}</td>
+                                    <td style="padding:8px;vertical-align:top;">${fin}</td>
+                                    <td style="padding:8px;vertical-align:top;">${comentario}</td>
+                                </tr>`;
+                    }
+                }
+
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+                titleEl.textContent = formatReportTitle(type, start, end);
+            } catch (e) {
+                container.innerHTML = '<div style="opacity:0.8;">Error cargando sesiones.</div>';
+            }
+        }
+
+        function restoreMainboxView() {
+            const embedded = document.getElementById('embeddedConsoleReport');
+            if (embedded) embedded.style.display = 'none';
+            const consolesList = document.getElementById('consolesList');
+            if (consolesList) {
+                consolesList.style.filter = '';
+                renderConsolesList();
+            }
+            _currentEmbeddedConsole = null;
+        }
     </script>
 </body>
 </html>

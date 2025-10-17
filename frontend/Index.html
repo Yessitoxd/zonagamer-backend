@@ -196,23 +196,26 @@
             event.preventDefault();
             errorMessage.textContent = '';
 
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-
-            const username = usernameInput.value;
-            const password = passwordInput.value;
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
 
             try {
-                const res = await fetch('https://zonagamer-backend.onrender.com/employees');
-                const empleados = await res.json();
-                const empleadoEncontrado = empleados.find(emp => emp.username === username && emp.password === password);
-                if (empleadoEncontrado) {
-                    console.log(`¡Bienvenido, ${empleadoEncontrado.username}! Autenticación exitosa.`);
-                    localStorage.setItem('currentUser', JSON.stringify(empleadoEncontrado));
-                    window.location.href = `panelempleados.html`;
+                const res = await fetch('https://zonagamer-backend.onrender.com/session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role: 'trabajador' }),
+                    credentials: 'include'
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    errorMessage.textContent = data.error || 'Nombre de usuario o contraseña incorrectos.';
+                    return;
+                }
+                const data = await res.json();
+                if (data && data.ok) {
+                    window.location.href = 'panelempleados.html';
                 } else {
-                    console.log('Nombre de usuario o contraseña incorrectos.');
-                    errorMessage.textContent = 'Nombre de usuario o contraseña incorrectos.';
+                    errorMessage.textContent = (data && data.error) || 'Error de inicio de sesión.';
                 }
             } catch (err) {
                 errorMessage.textContent = 'Error de conexión con el servidor.';
