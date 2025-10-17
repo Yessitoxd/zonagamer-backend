@@ -6,8 +6,6 @@
 </head>
 <body>
     <script>
-        // Este archivo solo existe para manejar la lógica de las sesiones.
-        // No tiene interfaz de usuario.
         function saveSession(session) {
             const sessions = JSON.parse(localStorage.getItem('employeeSessions')) || [];
             sessions.push(session);

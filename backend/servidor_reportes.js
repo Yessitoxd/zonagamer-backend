@@ -138,6 +138,29 @@ app.delete('/session', (req, res) => {
 app.get('/', (req, res) => {
   res.send('API Zonagamer Backend funcionando');
 });
+
+// Health check simple para monitoreo (uptime y estado de mongoose)
+app.get('/health', async (req, res) => {
+  try {
+    const uptime = process.uptime();
+    const mongooseState = mongoose.connection.readyState; // 0 disconnected, 1 connected, 2 connecting, 3 disconnecting
+    // opcional: intentar un ping sencillo a Mongo si está conectado
+    let mongoPing = null;
+    if (mongooseState === 1) {
+      try {
+        // usar comando admin ping si está disponible
+        const admin = mongoose.connection.db.admin();
+        await admin.ping();
+        mongoPing = true;
+      } catch (e) {
+        mongoPing = false;
+      }
+    }
+    res.json({ ok: true, uptime, mongooseState, mongoPing });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
 // Conexión a MongoDB Atlas
 console.log("Valor de process.env.Zonagamer:", process.env.Zonagamer);
 console.log("Valor de process.env.MONGODB_URI:", process.env.MONGODB_URI);

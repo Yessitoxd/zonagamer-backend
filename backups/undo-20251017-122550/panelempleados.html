@@ -1,4 +1,5 @@
 <script>
+    // alarmSound será inicializado cuando el DOM esté listo
     var alarmSound = null;
 </script>
 <!DOCTYPE html>
@@ -563,6 +564,7 @@
         const usernameDisplay = document.getElementById('usernameDisplay');
         const sidebar = document.getElementById('sidebar');
         const logoutBtn = document.getElementById('logoutBtn');
+        // Init alarm element and unlock audio on first gesture
         try {
             const alarmEl = document.getElementById('alarm-sound');
             if (alarmEl) {
@@ -581,6 +583,7 @@
                             alarmSound.muted = false;
                             audioUnlocked = true;
                         }).catch(() => {
+                            // ignore
                         });
                     } else {
                         alarmSound.pause();
@@ -589,10 +592,12 @@
                         audioUnlocked = true;
                     }
                 } catch (e) {
+                    // ignore
                 }
             };
             document.addEventListener('pointerdown', unlockAudioOnce, { once: true, capture: true });
         } catch {}
+        // Cargar sesión desde backend; si no hay sesión, redirigir al login
         let employeeName = 'Empleado';
         try {
             const r = await fetch('https://zonagamer-backend.onrender.com/session', { credentials: 'include' });
@@ -615,9 +620,11 @@
         usernameDisplay.textContent = employeeName;
         mainPanel.style.display = 'flex';
         body.style.flexDirection = 'row';
+        // Mensaje de bienvenida solo en consola
         if (employeeName && employeeName !== 'Empleado') {
             console.log(`¡Bienvenido, ${employeeName}! Autenticación exitosa.`);
         }
+        // Barra lateral oculta al inicio (display: none)
         sidebar.style.display = 'none';
         logoutBtn.style.display = 'none';
         usernameDisplay.style.cursor = 'pointer';
@@ -637,6 +644,7 @@
             window.location.href = 'Index.html';
         };
 
+        // Daily earnings reset watcher (America/Managua)
         try {
             const getDateNicaISO = () => {
                 try {
@@ -660,7 +668,9 @@
     let sourceCard = null;
     let totalEarnings = 0;
 
+    // Eliminado sistema de deduplicación por transferencias; no registraremos eventos 'cambio'.
 
+    // Unificar claves de localStorage con paneladmins.html
     let consoles = [];
     let prices = { ps5: {}, switch: {} };
     let employees = [];
@@ -673,6 +683,7 @@
     async function fetchPrices() {
         const res = await fetch('https://zonagamer-backend.onrender.com/prices');
         const pricesArray = await res.json();
+        // Agrupa los precios por consola y duración
         prices = { ps5: {}, switch: {} };
         pricesArray.forEach(p => {
             if (p.console && p.duration && p.price) {
@@ -686,16 +697,20 @@
         employees = await res.json();
     }
 
+    // Guardar datos en la API REST
     async function saveConsoles(newConsoles) {
+        // If it's a single console object, use POST to add it individually.
         if (!Array.isArray(newConsoles)) {
             await fetch('https://zonagamer-backend.onrender.com/consoles', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newConsoles)
             });
+            // Refresh local list from server to get _id and latest data
             await fetchConsoles();
             return;
         }
+        // Otherwise it's an array -> bulk replace (PUT)
         const res = await fetch('https://zonagamer-backend.onrender.com/consoles', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -786,8 +801,9 @@
             });
         }
 
+        // duration is provided in minutes. This returns a human-friendly label.
         function formatDuration(minutesInput) {
-            const mins = Math.round(parseFloat(minutesInput) * 100) / 100;
+            const mins = Math.round(parseFloat(minutesInput) * 100) / 100; // keep up to 2 decimals
             const hours = Math.floor(mins / 60);
             const minutes = Math.round(mins % 60);
 
@@ -801,6 +817,7 @@
         }
 
         function populatePriceSelects(card) {
+            // Usar el tipo de consola tal cual viene de la base de datos
             const consoleType = card.dataset.consoleType;
             const timeSelect = card.querySelector('.time-select');
             const defaultOption = document.createElement('option');
@@ -818,7 +835,7 @@
                 const option = document.createElement('option');
                 const mins = parseFloat(minutes);
                 const secondsValue = Math.round(mins * 60);
-                option.value = secondsValue;
+                option.value = secondsValue; // store seconds for timers
                 option.dataset.price = consolePrices[minutes];
                 option.textContent = formatDuration(minutes);
                 timeSelect.appendChild(option);
@@ -826,6 +843,7 @@
         }
 
         async function loadEarnings() {
+            // Persistir ganancias localmente por día (America/Managua)
             try {
                 const KEY = 'zg_earnings';
                 const DATE_KEY = 'zg_earnings_date';
@@ -835,6 +853,7 @@
                 try { todayISO = new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0]; }
                 catch { todayISO = new Date().toISOString().slice(0,10); }
 
+                // Primero intentar cargar desde backend si existe sesión
                 let loaded = false;
                 try {
                     const res = await fetch('https://zonagamer-backend.onrender.com/earnings?date=' + todayISO, { credentials: 'include' });
@@ -842,12 +861,14 @@
                         const data = await res.json();
                         if (data && typeof data.amount !== 'undefined') {
                             totalEarnings = Number(data.amount) || 0;
+                            // sincronizar localStorage
                             localStorage.setItem(KEY, String(totalEarnings));
                             localStorage.setItem(DATE_KEY, todayISO);
                             loaded = true;
                         }
                     }
                 } catch (e) {
+                    // backend no disponible o sin sesión; caeremos al fallback local
                 }
 
                 if (!loaded) {
@@ -855,6 +876,7 @@
                     totalEarnings = (!isNaN(parsed) ? parsed : 0);
 
                     if (!storedDate || storedDate !== todayISO) {
+                        // Si no hay fecha guardada o es otra fecha, reiniciar también almacenamiento
                         totalEarnings = 0;
                         localStorage.setItem(KEY, '0');
                         localStorage.setItem(DATE_KEY, todayISO);
@@ -875,12 +897,14 @@
             const newPrice = parseFloat(price);
             if (!isNaN(newPrice)) {
                 totalEarnings += newPrice;
+                // Guardar en localStorage con fecha Managua
                 try {
                     const KEY = 'zg_earnings';
                     const DATE_KEY = 'zg_earnings_date';
                     localStorage.setItem(KEY, String(totalEarnings));
                     const todayISO = new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0];
                     localStorage.setItem(DATE_KEY, todayISO);
+                    // También intentar persistir en backend; fallar silenciosamente y conservar localStorage
                     try {
                         fetch('https://zonagamer-backend.onrender.com/earnings', {
                             method: 'POST',
@@ -934,6 +958,7 @@
             const targetPrice = targetTimeSelect.options[targetTimeSelect.selectedIndex].dataset.price;
             targetCard.querySelector('.price-display').textContent = `C$ ${targetPrice}`;
             targetCard.querySelector('.timer-left').textContent = formatTime(targetCard.elapsedSeconds);
+            // El derecho debe ser ESTÁTICO: siempre mostrar el tiempo total asignado
             targetCard.querySelector('.timer-right').textContent = formatTime(targetCard.totalSeconds);
             targetCard.startResetBtns.classList.add('hidden');
             targetCard.pauseResumeBtns.classList.remove('hidden');
@@ -942,8 +967,10 @@
             clearInterval(targetCard.intervalId);
             targetCard.pauseStartTime = new Date().getTime();
             targetCard.updateEndTimeDisplay();
+            // Guardar estado de ambas consolas
             if (typeof targetCard.saveCardState === 'function') targetCard.saveCardState();
             if (typeof sourceCard.saveCardState === 'function') sourceCard.saveCardState();
+            // No guardar sesión de 'cambio'. Guardar comentario para usarlo al finalizar
             targetCard.transferComment = `Cambio de ${sourceCard.dataset.consoleType} #${sourceCard.dataset.consoleNumber} a ${targetCard.dataset.consoleType} #${targetCard.dataset.consoleNumber}`;
             sourceCard.resetCard();
             transferMode = false;
@@ -956,6 +983,7 @@
         }
 
         function initCardFunctionality(card) {
+            // --- Estado persistente por consola ---
             card.sessionStartTime = null;
             card.totalSeconds = 0;
             card.intervalId = null;
@@ -994,13 +1022,14 @@
 
             populatePriceSelects(card);
 
+            // --- Persistencia de estado ---
             function getDateNicaISO() {
                 try {
                     return new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0];
                 } catch (e) { return new Date().toISOString().slice(0,10); }
             }
             let lastStateSaveAt = 0;
-            const SAVE_EVERY_MS = 5000;
+            const SAVE_EVERY_MS = 5000; // throttle network saves to once every 5s per card
             async function saveCardState() {
                 const state = {
                     sessionStartTime: card.sessionStartTime,
@@ -1035,11 +1064,13 @@
                     console.error('Error guardando estado de consola en backend:', e);
                 }
             }
+            // Exponer para transferencia
             card.saveCardState = saveCardState;
             function saveCardStateThrottled(force = false) {
                 const now = Date.now();
                 if (!force && (now - lastStateSaveAt) < SAVE_EVERY_MS) return;
                 lastStateSaveAt = now;
+                // fire and forget
                 saveCardState();
             }
             async function loadCardState() {
@@ -1048,6 +1079,7 @@
                     if (!res.ok) return;
                     const state = await res.json();
                     if (!state) return;
+                    // Si es estado de otro día (Managua), ignorarlo
                     const todayNica = getDateNicaISO();
                     if (state.dayISO && state.dayISO !== todayNica) {
                         return;
@@ -1061,6 +1093,7 @@
                     card.currentSessionEarnings = state.currentSessionEarnings;
                     timeSelect.value = state.timeSelectValue || '';
                     card.querySelector('.price-display').textContent = state.priceDisplay || 'C$ 0';
+                    // UI sólo si existe una sesión válida
                     if (state.ui && state.sessionStartTime && state.totalSeconds > 0) {
                         card.startResetBtns.classList.toggle('hidden', !state.ui.startReset);
                         card.pauseResumeBtns.classList.toggle('hidden', !state.ui.pauseResume);
@@ -1092,6 +1125,7 @@
                 card.sessionStartTime = new Date().getTime();
                 card.totalPausedTime = 0;
                 card.elapsedSeconds = 0;
+                // El derecho debe ser ESTÁTICO: siempre mostrar el tiempo total asignado
                 const formattedTime = formatTime(card.totalSeconds);
                 timeLeftDisplay.textContent = '0:00:00';
                 timeRightDisplay.textContent = formattedTime;
@@ -1106,6 +1140,7 @@
                 saveCardStateThrottled(true);
             }
 
+            // Usar SIEMPRE Alarm.wav en bucle hasta que se finalice o se añada más tiempo
 
             card.checkTimeAndAct = function() {
                 const now = new Date().getTime();
@@ -1123,6 +1158,7 @@
                 }
                 card.elapsedSeconds = Math.min(card.totalSeconds || 0, Math.max(0, Math.floor(elapsedActiveTime)));
                 timeLeftDisplay.textContent = formatTime(card.elapsedSeconds);
+                // El derecho debe ser ESTÁTICO: siempre mostrar el tiempo total asignado
                 timeRightDisplay.textContent = formatTime(card.totalSeconds);
                 progressBar.style.width = `${(card.elapsedSeconds / (card.totalSeconds || 1)) * 100}%`;
                 saveCardStateThrottled();
@@ -1163,9 +1199,11 @@
                 card.currentSessionEarnings = 0;
                 card.classList.remove('transfer-mode', 'target-mode', 'disabled-card');
                 card.removeEventListener('click', handleTransferClick);
+                // Eliminar estado en backend para no restaurar sesiones antiguas al reingresar
                 try { fetch(`https://zonagamer-backend.onrender.com/console-state/${card.dataset.consoleNumber}`, { method: 'DELETE' }); } catch (e) {}
             }
 
+            // Al cargar la página, restaurar estado y reanudar visualmente si estaba corriendo
             ;(async () => {
                 await loadCardState();
                 if (card.sessionStartTime && card.totalSeconds > 0) {
@@ -1174,6 +1212,8 @@
                     const elapsedActiveTime = (now - card.sessionStartTime - (card.totalPausedTime || 0)) / 1000;
                     const overdueMs = (elapsedActiveTime - card.totalSeconds) * 1000;
                     if (elapsedActiveTime >= card.totalSeconds) {
+                        // Ya se pasó del tiempo: mostrar estado finalizado y alarma
+                        // Si la tarjeta está vencida por más de 2 minutos, limpiar automáticamente
                         if (overdueMs > 2 * 60 * 1000) {
                             card.resetCard();
                             return;
@@ -1203,6 +1243,7 @@
                         card.querySelector('.pause-btn').classList.remove('hidden');
                         card.querySelector('.resume-btn').classList.add('hidden');
                     } else {
+                        // Estaba en pausa: solo refrescar displays sin arrancar intervalo
                         card.elapsedSeconds = Math.max(0, Math.floor(elapsedActiveTime));
                         timeLeftDisplay.textContent = formatTime(card.elapsedSeconds);
                         timeRightDisplay.textContent = formatTime(card.totalSeconds);
@@ -1258,6 +1299,7 @@
             endSessionBtn.addEventListener('click', () => {
                 const selectedOption = timeSelect.options[timeSelect.selectedIndex];
                 const selectedPrice = parseFloat(selectedOption.dataset.price);
+                // Comentario de finalización normal (incluir cambio si lo hubo)
                 const baseComment = 'Finalizado';
                 const fullComment = card.transferComment ? `${baseComment}; ${card.transferComment}` : baseComment;
                 saveSessionData(
@@ -1276,6 +1318,7 @@
             endEarlyBtn.addEventListener('click', () => {
                 const selectedOption = timeSelect.options[timeSelect.selectedIndex];
                 const selectedPrice = parseFloat(selectedOption.dataset.price);
+                // Comentario de fin anticipado (incluir cambio si lo hubo)
                 const baseComment = 'Se detuvo antes de tiempo';
                 const fullComment = card.transferComment ? `${baseComment}; ${card.transferComment}` : baseComment;
                 saveSessionData(
@@ -1367,14 +1410,17 @@
         }
         
         function saveSessionData(consoleType, consoleNumber, durationSeconds, totalEarnings, startTime) {
+            // Guardar sesiones con comentarios claros y sin repeticiones
             const currentUser = window.currentUser || null;
             let action = arguments.length > 5 ? arguments[5] : undefined;
             let commentArg = arguments.length > 6 ? arguments[6] : undefined;
             let fromConsole = arguments.length > 7 ? arguments[7] : undefined;
 
+            // Construir comentario
             let comment = commentArg || '';
             if (!comment) {
                 if (action === 'detener') comment = 'Se detuvo antes de tiempo';
+                // Ya no registramos eventos 'cambio'. Sólo se añade como comentario al finalizar.
             }
 
             const newSession = {
@@ -1389,6 +1435,7 @@
                 fromConsole: fromConsole || undefined,
                 comment: comment || ''
             };
+        // --- FECHA NICARAGUA ---
         function getFechaNicaragua() {
             const ahora = new Date();
             const nica = ahora.toLocaleString('sv-SE', { timeZone: 'America/Managua' });
@@ -1398,6 +1445,7 @@
             const d = dateObj ? new Date(dateObj) : new Date();
             return d.toLocaleString('sv-SE', { timeZone: 'America/Managua' }).replace(' ', 'T');
         }
+            // --- Automatización: enviar acción al backend para reporte ---
             fetch('https://zonagamer-backend.onrender.com/accion', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1416,12 +1464,14 @@
             const currentUser = window.currentUser || null;
             if (currentUser && typeof currentUser.role === 'string' && currentUser.role.trim().toLowerCase() === 'trabajador') {
                 const today = new Date().toISOString().slice(0, 10);
+                // Migrar workDays a backend
                 let workDaysData = {};
                 if (!workDaysData[currentUser.username]) {
                     workDaysData[currentUser.username] = [];
                 }
                 if (!workDaysData[currentUser.username].includes(today)) {
                     workDaysData[currentUser.username].push(today);
+                    // Migrar workDays a backend
                     console.log('[recordWorkDay] Día registrado:', today, 'para usuario:', currentUser.username);
                 } else {
                     console.log('[recordWorkDay] Día ya registrado:', today, 'para usuario:', currentUser.username);
@@ -1434,6 +1484,7 @@
             }
         }
         
+        // ...existing code...
 
 
         usernameDisplay.addEventListener('click', () => {
@@ -1442,10 +1493,12 @@
         
 
         logoutBtn.addEventListener('click', async () => {
+            // Clear session in backend
             await fetch('https://zonagamer-backend.onrender.com/session', { method: 'DELETE', credentials: 'include' });
             window.location.href = 'index.html';
         });
         
+        // Listeners para los botones del panel
         if (typeof btnReporteGeneral !== 'undefined' && btnReporteGeneral) {
             btnReporteGeneral.addEventListener('click', () => {
                 alert('Funcionalidad de Reporte General próximamente.');
@@ -1466,10 +1519,12 @@
                 alert('Funcionalidad de Añadir Precio próximamente.');
             });
         }
+    // Renderizar tarjetas al cargar la página
     document.addEventListener('DOMContentLoaded', async () => {
         await fetchConsoles();
         await fetchPrices();
         loadAndRenderConsoles();
+        // Initialize earnings after UI mounts
     try { loadEarnings().catch(() => {}); } catch {}
     });
     </script>

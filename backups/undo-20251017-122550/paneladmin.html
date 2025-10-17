@@ -74,36 +74,6 @@
                 border-radius: 32px !important;
                 height: 220px;
             }
-            /* On narrow screens make the sidebar horizontal and scrollable so buttons are accessible */
-            .admin-figma-sidebar {
-                display: flex !important;
-                flex-direction: row !important;
-                align-items: center !important;
-                overflow-x: auto !important;
-                padding: 12px !important;
-                gap: 12px !important;
-            }
-            /* inner wrapper holds the buttons and logout; buttons scroll, logout stays to the right */
-            .admin-figma-sidebar .sidebar-inner {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                gap: 12px;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                padding-bottom: 4px;
-            }
-            .admin-figma-sidebar .sidebar-inner .sidebar-btn {
-                display: inline-flex !important;
-                min-width: 100px !important;
-                width: auto !important;
-                white-space: normal;
-            }
-            /* logout is visually part of the bar but should remain at the far right */
-            .admin-figma-sidebar .logout-btn {
-                flex: 0 0 auto;
-                margin-left: 12px !important;
-            }
         }
         /* Contenedor de los dos cuadros */
         .admin-main-layout {
@@ -377,17 +347,15 @@
     <div id="adminPanelSesiones" style="display:none;">
         <div class="admin-panel-figma-layout">
             <div class="admin-figma-sidebar">
-                <!-- sidebar-inner holds the scrollable buttons row on small screens -->
-                <div class="sidebar-inner" style="display:flex;flex-direction:column;height:100%;width:100%;">
-                    <div style="display:flex;flex-direction:column;flex:1 1 auto;justify-content:flex-start;gap:24px;padding-top:24px;padding-bottom:24px;">
+                <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
+                    <div style="display: flex; flex-direction: column; flex: 1 1 auto; justify-content: flex-start; gap: 32px; padding-top: 24px; padding-bottom: 24px;">
                         <button class="sidebar-btn" onclick="showSession('reporte')" id="btn-reporte">Reporte<br>general</button>
                         <button class="sidebar-btn" onclick="showSession('descargar')" id="btn-descargar">Descargar<br>reporte</button>
                         <button class="sidebar-btn" onclick="showSession('consolas')" id="btn-consolas">Añadir<br>consolas</button>
                         <button class="sidebar-btn" onclick="showSession('precios')" id="btn-precios">Añadir<br>precios</button>
                     </div>
+                    <button class="sidebar-btn logout-btn" onclick="window.location.href='Index.html'">Cerrar sesión</button>
                 </div>
-                <!-- keep logout visually within the same sidebar but outside the scrollable button region -->
-                <button class="sidebar-btn logout-btn" onclick="window.location.href='Index.html'">Cerrar sesión</button>
             </div>
             <div class="admin-figma-mainbox">
                 <div id="mainbox-session-reporte" class="mainbox-session" style="display:block;">
@@ -489,10 +457,11 @@
                         </div>
                     </div>
                 </div>
-                <!--  -->
+                <!-- FIN sección precios -->
 
-<!--  -->
+<!-- El bloque de JS de precios está consolidado al final del archivo -->
     <script>
+        // Mostrar consolas en tarjetas en Reporte General (sin editar/eliminar)
         async function renderConsolesList() {
             const list = document.getElementById('consolesList');
             if (!list) return;
@@ -504,6 +473,7 @@
                     list.innerHTML = '<div style="color:#fff;opacity:0.7;">No hay consolas registradas.</div>';
                     return;
                 }
+                // Ordenar por número
                 consolas.sort((a, b) => a.number - b.number);
                 list.innerHTML = consolas.map((c) => {
                     let nombre = c.type === 'ps5' ? 'Play Station 5' : (c.type === 'switch' ? 'Nintendo Switch' : c.type);
@@ -513,6 +483,7 @@
                         <div style='font-weight:700;font-size:18px;color:#81fde9;margin-bottom:4px;'>${nombre} <span style="color:#fff;font-size:15px;">#${c.number}</span></div>
                     </div>`;
                 }).join('');
+                // Add hover/touch effect and click handlers
                 document.querySelectorAll('.console-card-admin').forEach(card => {
                     card.addEventListener('mouseenter', () => {
                         card.style.transform = 'scale(1.03) translateY(-6px)';
@@ -528,11 +499,13 @@
                             selectConsole(type, number, card);
                         });
                 });
+                    // After rendering, select the first console by default (if any)
                     const allCards = document.querySelectorAll('.console-card-admin');
                     if (allCards && allCards.length > 0) {
                         const first = allCards[0];
                         const t = first.dataset.type;
                         const n = first.dataset.number;
+                        // slight delay to ensure inputs exist
                         setTimeout(() => selectConsole(t, n, first), 50);
                     }
                 
@@ -542,6 +515,7 @@
         }
 
         function addToSelectedBar(type, number) {
+            // No mostrar las píldoras: esta función ahora es intencionalmente NO-OP para evitar acumulación visual
             return;
         }
 
@@ -553,6 +527,7 @@
             document.getElementById('embeddedConsoleReport').style.display = 'none';
         }
 
+        // Toast system
         function showToast(message, duration = 6000) {
             const container = document.getElementById('toast-container');
             if (!container) return;
@@ -587,6 +562,7 @@
             }, duration);
         }
 
+        // Mostrar minitarjetas de consolas en sección Añadir Consolas
         async function renderMiniConsolesList() {
             const miniList = document.getElementById('miniConsolesList');
             if (!miniList) return;
@@ -598,6 +574,7 @@
                     miniList.innerHTML = '<div style="color:#fff;opacity:0.7;">No hay consolas registradas.</div>';
                     return;
                 }
+                // Filtrar solo consolas con _id válido (24 caracteres hex)
                 const consolasValidas = consolas.filter(c => typeof c._id === 'string' && /^[a-fA-F0-9]{24}$/.test(c._id));
                 consolasValidas.sort((a, b) => a.number - b.number);
                 if (consolasValidas.length === 0) {
@@ -615,6 +592,7 @@
                         </div>
                     </div>`;
                 }).join('');
+                // Botones editar/eliminar
                 document.querySelectorAll('.mini-edit-btn').forEach(btn => {
                     btn.onclick = function() {
                         const id = this.dataset.id;
@@ -642,8 +620,9 @@
             }
         }
 
+        // Modal para ver sesiones por consola y fecha
         function createSessionsModal() {
-            if (document.getElementById('sessionsModal')) return;
+            if (document.getElementById('sessionsModal')) return; // already exists
             const modal = document.createElement('div');
             modal.id = 'sessionsModal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;';
@@ -702,7 +681,9 @@
             document.body.style.overflow = 'hidden';
         }
 
+        // Modal de edición de consola
                 function showEditConsoleModal(consola) {
+                        // Obtener username admin
                         const username = document.getElementById('adminUsername')?.value || 'Admin';
                         let modal = document.createElement('div');
                         modal.id = 'editConsoleModal';
@@ -738,10 +719,12 @@
                                 e.preventDefault();
                                 const type = document.getElementById('editConsoleType').value;
                                 const number = parseInt(document.getElementById('editConsoleNumber').value, 10);
+                                // Validar número
                                 if (!type || !number || number < 1) {
                                     showToast('Completa todos los campos correctamente.', 6000);
                                     return;
                                 }
+                                // PUT al backend
                                 const res = await fetch('https://zonagamer-backend.onrender.com/consoles/' + consola._id, {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
@@ -757,8 +740,11 @@
                                 }
                         };
                 }
+        // Renderizar al mostrar la sección reporte
         document.getElementById('btn-reporte').addEventListener('click', renderConsolesList);
+        // Renderizar minitarjetas al mostrar sección consolas
         document.getElementById('btn-consolas').addEventListener('click', renderMiniConsolesList);
+        // Renderizar al cargar la página si está activa
         document.addEventListener('DOMContentLoaded', function() {
             if (document.getElementById('mainbox-session-reporte').style.display !== 'none') {
                 renderConsolesList();
@@ -767,6 +753,7 @@
                 renderMiniConsolesList();
             }
         });
+        // Añadir consola: enviar al backend
         document.addEventListener('DOMContentLoaded', function() {
             const addConsoleForm = document.getElementById('addConsoleForm');
             if (addConsoleForm) {
@@ -780,6 +767,7 @@
                         msg.textContent = 'Completa todos los campos correctamente.';
                         return;
                     }
+                    // Validar que el número no esté repetido
                     try {
                         const resConsolas = await fetch('https://zonagamer-backend.onrender.com/consoles');
                         const consolas = await resConsolas.json();
@@ -791,6 +779,7 @@
                         msg.textContent = 'Error validando número de consola.';
                         return;
                     }
+                    // Enviar al backend
                     try {
                         const res = await fetch('https://zonagamer-backend.onrender.com/consoles', {
                             method: 'POST',
@@ -812,6 +801,7 @@
                 });
             }
         });
+        // Cambia la sección visible en la mainbox y resalta el botón activo
         function showSession(session) {
             const sessions = ['reporte', 'descargar', 'consolas', 'precios'];
             sessions.forEach(s => {
@@ -819,16 +809,23 @@
                 document.getElementById('btn-' + s).classList.toggle('active', s === session);
             });
         }
+        // --- Embedded console report view helpers ---
+        // Store previous mainbox content so we can restore it
         let _previousMainboxHTML = null;
-        let _currentEmbeddedConsole = null;
+        let _currentEmbeddedConsole = null; // {type, number}
 
+        // Reusable selection function: highlights card, shows embedded report immediately
         function selectConsole(type, number, cardEl) {
+            // highlight selected card visually
             document.querySelectorAll('.console-card-admin').forEach(c => c.style.boxShadow = '');
             if (cardEl) {
                 cardEl.style.boxShadow = '0 10px 32px rgba(0,0,0,0.45)';
+                // ensure it's visible in scroller
                 try { cardEl.scrollIntoView({ behavior: 'smooth', inline: 'center' }); } catch(e){}
             }
+            // add to selected bar
             addToSelectedBar(type, number);
+            // show embedded report and set defaults
             _currentEmbeddedConsole = { type, number };
             const embedded = document.getElementById('embeddedConsoleReport');
             const titleEl = document.getElementById('embeddedReportTitle');
@@ -844,13 +841,18 @@
             endInput.value = today;
             list.innerHTML = '<div style="opacity:0.8;">Selecciona fechas o usa Buscar para ver sesiones.</div>';
             embedded.style.display = 'block';
+            // Ensure controls visible (do not blur the grid)
             document.getElementById('consolesList').style.filter = '';
+            // Replace Back button with Clear selection behavior
+            // Keep the back button element but hide it visually for a cleaner embedded header
             const backBtn = document.getElementById('embeddedBackBtn');
             if (backBtn) {
                 backBtn.style.display = 'none';
                 backBtn.onclick = function() { clearSelectedConsoles(); };
             }
+            // Ensure selectedConsolesBar remains hidden (we disabled pill UI in this build)
             const _scb2 = document.getElementById('selectedConsolesBar'); if (_scb2) _scb2.style.display = 'none';
+            // Fetch handler
             document.getElementById('embeddedFetchBtn').onclick = async function() {
                 const start = startInput.value;
                 const end = endInput.value;
@@ -859,6 +861,7 @@
                 list.innerHTML = '<div style="opacity:0.8;">Cargando sesiones...</div>';
                 await renderSessionsInMainbox(type, number, start, end);
             };
+            // also automatically render today's sessions (best-effort)
             renderSessionsInMainbox(type, number, startInput.value, endInput.value);
         }
 
@@ -872,14 +875,18 @@
                 const sessions = await res.json();
                 if (!Array.isArray(sessions) || sessions.length === 0) {
                     container.innerHTML = '<div style="opacity:0.8;">No se encontraron sesiones en ese rango.</div>';
+                    // ajustar título según rango
                     titleEl.textContent = formatReportTitle(type, start, end);
                     return;
                 }
 
+                // Helpers
                 function formatDateISO(iso) {
+                    // Si ya viene en formato YYYY-MM-DD (clave usada para agrupar por Managua), formatear directamente
                     if (typeof iso === 'string' && iso.match(/^\d{4}-\d{2}-\d{2}$/)) {
                         return iso.slice(8,10) + '-' + iso.slice(5,7) + '-' + iso.slice(0,4);
                     }
+                    // intenta parsear y devolver dd-mm-aaaa (solo si incluye tiempo)
                     const d = new Date(iso);
                     if (!isNaN(d.getTime())) {
                         const dd = String(d.getDate()).padStart(2, '0');
@@ -896,6 +903,7 @@
                         const prefers12h = /am|pm/i.test(new Date().toLocaleTimeString());
                         return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: prefers12h });
                     }
+                    // si no es parseable, intenta extraer hora si existe
                     if (typeof iso === 'string') {
                         if (iso.length >= 19) return iso.slice(11,19);
                         if (iso.length >= 16) return iso.slice(11,16) + ':00';
@@ -919,6 +927,7 @@
                     return `Reporte del día ${sStart.split('-').reverse().join('-')} al día ${sEnd.split('-').reverse().join('-')}`;
                 }
 
+                // Agrupar por fecha en zona America/Managua para evitar desfase de un día
                 const byDate = {};
                 const toNicaDateKey = (iso) => {
                     if (!iso) return 'unknown';
@@ -936,13 +945,16 @@
                     byDate[key].push(s);
                 });
 
+                // obtener fechas ordenadas asc
                 const dateKeys = Object.keys(byDate).filter(k => k !== 'unknown').sort();
                 if (byDate['unknown']) dateKeys.push('unknown');
 
+                // Totales generales para el rango (el endpoint ya filtró por consola)
                 const totalUses = sessions.length;
                 const totalSeconds = sessions.reduce((acc, s) => acc + (Number(s.durationSeconds) || 0), 0);
                 const totalMoney = sessions.reduce((acc, s) => acc + (Number(s.totalPrice || s.total || 0) || 0), 0);
 
+                // construir tabla HTML con cabeceras en el orden solicitado
                 let html = `
                     <table style="width:100%;color:#fff;border-collapse:collapse;">
                         <thead style="background:rgba(44,18,80,0.95);">
@@ -962,6 +974,7 @@
 
                 for (const dt of dateKeys) {
                     const items = byDate[dt];
+                    // ordenar por startDate dentro de la fecha
                     items.sort((a,b) => {
                         const ta = new Date(a.startDate || a.createdAt || 0).getTime();
                         const tb = new Date(b.startDate || b.createdAt || 0).getTime();
@@ -989,6 +1002,7 @@
                     }
                 }
 
+                // Añadir fila de totales al final: colocar conteo de usos en columna Consola
                 html += `<tr class="totals-row" style="font-weight:700;background:rgba(255,255,255,0.03);">
                             <td style="padding:8px;white-space:nowrap;width:18%;">Totales</td>
                             <td style="padding:8px;width:14%;"></td>
@@ -1002,6 +1016,7 @@
                 html += `</tbody></table>`;
                 container.innerHTML = html;
 
+                // actualizar título con formato de rango
                 titleEl.textContent = formatReportTitle(type, start, end);
 
             } catch (e) {
@@ -1015,10 +1030,12 @@
             const consolesList = document.getElementById('consolesList');
             if (consolesList) {
                 consolesList.style.filter = '';
+                // Optionally refresh list
                 renderConsolesList();
             }
             _currentEmbeddedConsole = null;
         }
+        // Login de admin conectado a backend (más robusto)
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 document.getElementById('adminPanelSesiones').style.display = 'none';
@@ -1063,9 +1080,10 @@
             }
         });
     </script>
-    <!-- -->
+    <!-- Bloque de JS de precios (consolidado) -->
     <script>
     (function(){
+        // Utilidad para mostrar minutos como "1 hora y 30 minutos" o "45 minutos"
         function formatMinutes(mins) {
             if (mins < 60) return mins + ' minutos';
             const h = Math.floor(mins / 60);
@@ -1111,6 +1129,7 @@
             }
         }
 
+        // Añadir precio PS5
         document.addEventListener('DOMContentLoaded', function() {
             const formPs5 = document.getElementById('addPriceForm-ps5');
             if (formPs5) {
@@ -1148,6 +1167,7 @@
                 });
             }
 
+            // Añadir precio Switch
             const formSwitch = document.getElementById('addPriceForm-switch');
             if (formSwitch) {
                 formSwitch.addEventListener('submit', async function(e) {
@@ -1184,14 +1204,17 @@
                 });
             }
 
+            // Bind button to render prices when opening precios section
             const btnPrecios = document.getElementById('btn-precios');
             if (btnPrecios) btnPrecios.addEventListener('click', renderPricesList);
 
+            // If precios section visible on load, render prices
             if (document.getElementById('mainbox-session-precios') && document.getElementById('mainbox-session-precios').style.display !== 'none') {
                 renderPricesList();
             }
         });
 
+        // Expose edit/delete globally so buttons in table can call them
         window.editPrice = function(id, consoleType) {
             const minutes = prompt('Nuevo tiempo en minutos:');
             const price = prompt('Nuevo precio en C$');
@@ -1214,6 +1237,7 @@
 
         window.deletePrice = function(id, consoleType) {
             if (!confirm('¿Seguro que deseas eliminar este precio?')) return;
+            // backend supports DELETE /prices/:id
             fetch('https://zonagamer-backend.onrender.com/prices/' + id, { method: 'DELETE' })
             .then(res => res.json())
             .then(() => {
@@ -1226,7 +1250,8 @@
     })();
     </script>
     <script>
-    const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwl4CAW0eBxnwUgKYf9Eyk8zZQwziVgXYRlpJTVR4ZQb_wdOsLVNL0wZ4Uw1ZVemo_k/exec'; 
+    // CONFIG: URL del Apps Script Web App (insertado)
+    const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwl4CAW0eBxnwUgKYf9Eyk8zZQwziVgXYRlpJTVR4ZQb_wdOsLVNL0wZ4Uw1ZVemo_k/exec'; // Web App URL
 
     document.getElementById('downloadReportBtn').addEventListener('click', async function(){
         const start = document.getElementById('downloadStartDate').value;
@@ -1239,10 +1264,12 @@
 
         status.textContent = 'Recopilando sesiones...';
         try {
+            // fetch sessions for the range (all consoles)
             const res = await fetch(`https://zonagamer-backend.onrender.com/sessions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
             const sessions = await res.json();
             if (!Array.isArray(sessions)) throw new Error('Respuesta inválida del servidor');
 
+            // build rows matching columns C..J
             const rows = sessions.map(s => ({
                 fecha: (s.startDate||'').slice(0,10),
                 empleado: s.username || s.employee || '',
@@ -1256,39 +1283,22 @@
 
             const totalUses = sessions.length;
             const totalMoney = sessions.reduce((a,b) => a + (Number(b.totalPrice||b.total||0)||0), 0);
-            const totalTimeMinutes = sessions.reduce((acc, s) => acc + (Math.round((Number(s.durationSeconds)||0)/60)), 0);
-            const dayLabel = (start && end && start !== end) ? (start + ' al ' + end) : start;
 
             const payload = {
+                // you can optionally pass templateId here; otherwise set in Apps Script
                 title: `Reporte ${start}` + (start !== end ? ` - ${end}` : ''),
-                summary: { dayReportCellF5: dayLabel, dayTotalCellF8: `C$ ${totalMoney.toFixed(2)}` },
+                summary: { dayReportCellF5: `C$ ${totalMoney.toFixed(2)}`, dayTotalCellF8: `C$ ${totalMoney.toFixed(2)}` },
                 rows: rows,
-                totals: { totalUses: totalUses, totalMoney: totalMoney, totalTimeMinutes: totalTimeMinutes }
+                totals: { totalUses: totalUses, totalMoney: totalMoney }
             };
 
             status.textContent = 'Generando archivo en Sheets...';
-            const BACKEND_URL = 'https://zonagamer-backend.onrender.com';
-            async function postGenerate(url) {
-                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-                if (!res.ok) {
-                    const txt = await res.text().catch(()=>'');
-                    throw new Error('HTTP ' + res.status + ' - ' + (txt || res.statusText));
-                }
-                const txt = await res.text();
-                if (!txt) throw new Error('Empty response from server');
-                try { return JSON.parse(txt); } catch(e) { throw new Error('Invalid JSON response: ' + txt); }
-            }
-
-            let json;
-            try {
-                json = await postGenerate('/generate-report');
-            } catch (err) {
-                console.warn('Relative /generate-report failed, retrying with BACKEND_URL:', err.message);
-                json = await postGenerate(BACKEND_URL + '/generate-report');
-            }
-
+            // Post to backend proxy to avoid CORS issues
+            const postRes = await fetch('/generate-report', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+            const json = await postRes.json();
             if (json.error) throw new Error(json.error);
             status.innerHTML = 'Archivo listo: <a href="' + json.downloadUrl + '" target="_blank">Abrir XLSX</a>';
+            // optionally auto-open
             window.open(json.downloadUrl, '_blank');
         } catch (err) {
             console.error(err);
