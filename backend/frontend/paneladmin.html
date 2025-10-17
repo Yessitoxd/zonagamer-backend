@@ -959,9 +959,26 @@
             };
 
             status.textContent = 'Generando archivo en Sheets...';
-            // Post to backend proxy to avoid CORS issues
-            const postRes = await fetch('/generate-report', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-            const json = await postRes.json();
+            const BACKEND_URL = 'https://zonagamer-backend.onrender.com';
+            async function postGenerate(url) {
+                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+                if (!res.ok) {
+                    const txt = await res.text().catch(()=>'');
+                    throw new Error('HTTP ' + res.status + ' - ' + (txt || res.statusText));
+                }
+                const txt = await res.text();
+                if (!txt) throw new Error('Empty response from server');
+                try { return JSON.parse(txt); } catch(e) { throw new Error('Invalid JSON response: ' + txt); }
+            }
+
+            let json;
+            try {
+                json = await postGenerate('/generate-report');
+            } catch (err) {
+                console.warn('Relative /generate-report failed, retrying with BACKEND_URL:', err.message);
+                json = await postGenerate(BACKEND_URL + '/generate-report');
+            }
+
             if (json.error) throw new Error(json.error);
             status.innerHTML = 'Archivo listo: <a href="' + json.downloadUrl + '" target="_blank">Abrir XLSX</a>';
             window.open(json.downloadUrl, '_blank');

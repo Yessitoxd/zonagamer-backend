@@ -1,0 +1,2 @@
+# Netlify redirect to proxy /generate-report to the backend. Replace with your backend domain if different.
+/generate-report  https://zonagamer-backend.onrender.com/generate-report  200  POST
