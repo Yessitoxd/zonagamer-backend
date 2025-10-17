@@ -83,10 +83,26 @@
                 padding: 12px !important;
                 gap: 12px !important;
             }
-            .admin-figma-sidebar .sidebar-btn {
-                display: inline-block !important;
-                min-width: auto !important;
+            /* inner wrapper holds the buttons and logout; buttons scroll, logout stays to the right */
+            .admin-figma-sidebar .sidebar-inner {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 12px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 4px;
+            }
+            .admin-figma-sidebar .sidebar-inner .sidebar-btn {
+                display: inline-flex !important;
+                min-width: 100px !important;
                 width: auto !important;
+                white-space: normal;
+            }
+            /* logout is visually part of the bar but should remain at the far right */
+            .admin-figma-sidebar .logout-btn {
+                flex: 0 0 auto;
+                margin-left: 12px !important;
             }
         }
         /* Contenedor de los dos cuadros */
@@ -361,15 +377,17 @@
     <div id="adminPanelSesiones" style="display:none;">
         <div class="admin-panel-figma-layout">
             <div class="admin-figma-sidebar">
-                <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
-                    <div style="display: flex; flex-direction: column; flex: 1 1 auto; justify-content: flex-start; gap: 32px; padding-top: 24px; padding-bottom: 24px;">
+                <!-- sidebar-inner holds the scrollable buttons row on small screens -->
+                <div class="sidebar-inner" style="display:flex;flex-direction:column;height:100%;width:100%;">
+                    <div style="display:flex;flex-direction:column;flex:1 1 auto;justify-content:flex-start;gap:24px;padding-top:24px;padding-bottom:24px;">
                         <button class="sidebar-btn" onclick="showSession('reporte')" id="btn-reporte">Reporte<br>general</button>
                         <button class="sidebar-btn" onclick="showSession('descargar')" id="btn-descargar">Descargar<br>reporte</button>
                         <button class="sidebar-btn" onclick="showSession('consolas')" id="btn-consolas">Añadir<br>consolas</button>
                         <button class="sidebar-btn" onclick="showSession('precios')" id="btn-precios">Añadir<br>precios</button>
                     </div>
-                    <button class="sidebar-btn logout-btn" onclick="window.location.href='Index.html'">Cerrar sesión</button>
                 </div>
+                <!-- keep logout visually within the same sidebar but outside the scrollable button region -->
+                <button class="sidebar-btn logout-btn" onclick="window.location.href='Index.html'">Cerrar sesión</button>
             </div>
             <div class="admin-figma-mainbox">
                 <div id="mainbox-session-reporte" class="mainbox-session" style="display:block;">

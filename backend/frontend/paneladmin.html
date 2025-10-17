@@ -353,22 +353,23 @@
     <div id="adminPanelSesiones" style="display:none;">
         <div class="admin-panel-figma-layout">
             <div class="admin-figma-sidebar">
-                <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
-                    <div style="display: flex; flex-direction: column; flex: 1 1 auto; justify-content: flex-start; gap: 32px; padding-top: 24px; padding-bottom: 24px;">
+                <!-- sidebar-inner holds the scrollable buttons row on small screens -->
+                <div class="sidebar-inner" style="display:flex;flex-direction:column;height:100%;width:100%;">
+                    <div style="display:flex;flex-direction:column;flex:1 1 auto;justify-content:flex-start;gap:24px;padding-top:24px;padding-bottom:24px;">
                         <button class="sidebar-btn" onclick="showSession('reporte')" id="btn-reporte">Reporte<br>general</button>
                         <button class="sidebar-btn" onclick="showSession('descargar')" id="btn-descargar">Descargar<br>reporte</button>
                         <button class="sidebar-btn" onclick="showSession('consolas')" id="btn-consolas">Añadir<br>consolas</button>
                         <button class="sidebar-btn" onclick="showSession('precios')" id="btn-precios">Añadir<br>precios</button>
                     </div>
-                    <button class="sidebar-btn logout-btn" onclick="window.location.href='Index.html'">Cerrar sesión</button>
                 </div>
+                <!-- keep logout visually within the same sidebar but outside the scrollable button region -->
+                <button class="sidebar-btn logout-btn" onclick="window.location.href='Index.html'">Cerrar sesión</button>
             </div>
             <div class="admin-figma-mainbox">
                 <div id="mainbox-session-reporte" class="mainbox-session" style="display:block;">
                     <h2>Reporte General</h2>
                     <div id="consolesWrapper" style="margin-bottom:12px;">
                         <div id="selectedConsolesBar" style="display:none;overflow-x:auto;white-space:nowrap;gap:12px;padding-bottom:8px;margin-bottom:12px;">
-                            <!-- selected consoles will appear here as inline cards -->
                         </div>
                         <div id="consolesList" style="display:flex;gap:24px;overflow-x:auto;overflow-y:visible;flex-wrap:nowrap;padding:12px 8px;align-items:center;"></div>
                     </div>
@@ -428,7 +429,6 @@
         </div>
     </div>
     <script>
-        // Mostrar consolas en tarjetas en Reporte General
         async function renderConsolesList() {
             const list = document.getElementById('consolesList');
             if (!list) return;
@@ -440,7 +440,6 @@
                     list.innerHTML = '<div style="color:#fff;opacity:0.7;">No hay consolas registradas.</div>';
                     return;
                 }
-                // Ordenar por número
                 consolas.sort((a, b) => a.number - b.number);
                 list.innerHTML = consolas.map((c, idx) => {
                     let nombre = c.type === 'ps5' ? 'Play Station 5' : (c.type === 'switch' ? 'Nintendo Switch' : c.type);
@@ -451,7 +450,6 @@
                     </div>`;
                 }).join('');
 
-                // Add hover/touch effect and click handlers
                 document.querySelectorAll('.console-card-admin').forEach(card => {
                     card.addEventListener('mouseenter', () => {
                         card.style.transform = 'scale(1.03) translateY(-6px)';
@@ -464,26 +462,20 @@
                     card.addEventListener('click', async (ev) => {
                         const type = card.dataset.type;
                         const number = card.dataset.number;
-                        // Add to selected horizontal bar and fetch report for that console
                         addToSelectedBar(type, number);
                         await renderSessionsInMainbox(type, number, document.getElementById('embeddedStartDate').value || new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0], document.getElementById('embeddedEndDate').value || new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0]);
-                        // show embedded area (desglose abajo)
                         document.getElementById('embeddedConsoleReport').style.display = 'block';
                         document.getElementById('consolesList').style.filter = '';
-                        // remove the blur and hide embeddedBackBtn (not needed)
                         const backBtn = document.getElementById('embeddedBackBtn'); if (backBtn) backBtn.style.display = 'none';
                     });
                 });
 
-                // After rendering, select the first console by default (if any)
                 const allCards = document.querySelectorAll('.console-card-admin');
                 if (allCards && allCards.length > 0) {
                     const first = allCards[0];
                     const t = first.dataset.type;
                     const n = first.dataset.number;
-                    // slight delay to ensure inputs exist
                     setTimeout(() => {
-                        // show today's report for the first console
                         addToSelectedBar(t, n);
                         document.getElementById('embeddedConsoleReport').style.display = 'block';
                         renderSessionsInMainbox(t, n, document.getElementById('embeddedStartDate').value || new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0], document.getElementById('embeddedEndDate').value || new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0]);
@@ -494,9 +486,7 @@
             }
         }
 
-        // Modal de edición de consola
         function showEditConsoleModal(consola) {
-            // Obtener username admin
             const username = document.getElementById('adminUsername')?.value || 'Admin';
             let modal = document.createElement('div');
             modal.id = 'editConsoleModal';
@@ -532,12 +522,10 @@
                 e.preventDefault();
                 const type = document.getElementById('editConsoleType').value;
                 const number = parseInt(document.getElementById('editConsoleNumber').value, 10);
-                // Validar número
                 if (!type || !number || number < 1) {
                     alert('Completa todos los campos correctamente.');
                     return;
                 }
-                // PUT al backend
                 const res = await fetch('https://zonagamer-backend.onrender.com/consoles/' + consola._id, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -552,7 +540,6 @@
             };
         }
 
-        // Sessions modal helpers (same behaviour as main frontend)
         function createSessionsModal() {
             if (document.getElementById('sessionsModal')) return;
             const modal = document.createElement('div');
@@ -612,15 +599,12 @@
             document.getElementById('sessionsDatePicker').value = new Date().toISOString().slice(0,10);
             document.body.style.overflow = 'hidden';
         }
-        // Renderizar al mostrar la sección reporte
         document.getElementById('btn-reporte').addEventListener('click', renderConsolesList);
-        // Renderizar al cargar la página si está activa
         document.addEventListener('DOMContentLoaded', function() {
             if (document.getElementById('mainbox-session-reporte').style.display !== 'none') {
                 renderConsolesList();
             }
         });
-        // Añadir consola: enviar al backend
         document.addEventListener('DOMContentLoaded', function() {
             const addConsoleForm = document.getElementById('addConsoleForm');
             if (addConsoleForm) {
@@ -634,7 +618,6 @@
                         msg.textContent = 'Completa todos los campos correctamente.';
                         return;
                     }
-                    // Validar que el número no esté repetido
                     try {
                         const resConsolas = await fetch('https://zonagamer-backend.onrender.com/consoles');
                         const consolas = await resConsolas.json();
@@ -646,7 +629,6 @@
                         msg.textContent = 'Error validando número de consola.';
                         return;
                     }
-                    // Enviar al backend
                     try {
                         const res = await fetch('https://zonagamer-backend.onrender.com/consoles', {
                             method: 'POST',
@@ -667,7 +649,6 @@
                 });
             }
         });
-        // Cambia la sección visible en la mainbox y resalta el botón activo
         function showSession(session) {
             const sessions = ['reporte', 'descargar', 'consolas', 'precios'];
             sessions.forEach(s => {
@@ -675,7 +656,6 @@
                 document.getElementById('btn-' + s).classList.toggle('active', s === session);
             });
         }
-        // Login de admin conectado a backend (más robusto)
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 document.getElementById('adminPanelSesiones').style.display = 'none';
@@ -719,7 +699,6 @@
                 if (errorMsg) errorMsg.textContent = 'Error inesperado en el login.';
             }
         });
-        // --- Embedded console report view helpers ---
         let _currentEmbeddedConsole = null;
         function openConsoleReportInMain(type, number) {
             _currentEmbeddedConsole = { type, number };
@@ -737,12 +716,9 @@
             endInput.value = today;
             list.innerHTML = '<div style="opacity:0.8;">Elige fechas y pulsa Buscar para ver sesiones.</div>';
             embedded.style.display = 'block';
-            // Remove blur and show selected bar
             document.getElementById('consolesList').style.filter = '';
             const backBtn = document.getElementById('embeddedBackBtn'); if (backBtn) backBtn.style.display = 'none';
-            // keep the selected bar hidden (we don't show pills in this UI)
             const _scb = document.getElementById('selectedConsolesBar'); if (_scb) _scb.style.display = 'none';
-            // ensure this console appears in the selected bar
             addToSelectedBar(type, number);
             document.getElementById('embeddedFetchBtn').onclick = async function() {
                 const start = startInput.value;
@@ -755,7 +731,6 @@
         }
 
         function addToSelectedBar(type, number) {
-            // No mostrar las píldoras en la barra — dejar esto como no-op para evitar acumulación visual
             return;
         }
 
@@ -782,11 +757,9 @@
                 }
 
                 function formatDateISO(iso) {
-                    // Si ya viene en formato YYYY-MM-DD (clave usada para agrupar por Managua), formatear directamente
                     if (typeof iso === 'string' && iso.match(/^\d{4}-\d{2}-\d{2}$/)) {
                         return iso.slice(8,10) + '-' + iso.slice(5,7) + '-' + iso.slice(0,4);
                     }
-                    // intenta parsear y devolver dd-mm-aaaa (solo si incluye tiempo)
                     const d = new Date(iso);
                     if (!isNaN(d.getTime())) {
                         const dd = String(d.getDate()).padStart(2, '0');
@@ -826,14 +799,12 @@
                     return `Reporte del día ${sStart.split('-').reverse().join('-')} al día ${sEnd.split('-').reverse().join('-')}`;
                 }
 
-                // Agrupar por fecha en zona America/Managua para evitar desfase de un día
                 const byDate = {};
                 const toNicaDateKey = (iso) => {
                     if (!iso) return 'unknown';
                     try {
                         const d = new Date(iso);
                         if (isNaN(d.getTime())) return 'unknown';
-                        // Obtener YYYY-MM-DD en zona Managua usando locale sueco (ISO-like)
                         const parts = d.toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ');
                         return parts[0];
                     } catch { return 'unknown'; }
@@ -865,7 +836,6 @@
                         <tbody>
                 `;
 
-                // Totales generales para el rango
                 const totalUses = sessions.length;
                 const totalSeconds = sessions.reduce((acc, s) => acc + (Number(s.durationSeconds) || 0), 0);
                 const totalMoney = sessions.reduce((acc, s) => acc + (Number(s.totalPrice || s.total || 0) || 0), 0);
@@ -899,7 +869,6 @@
                     }
                 }
 
-                // Añadir fila de totales al final: colocar conteo de usos en columna Consola
                 html += `<tr class="totals-row" style="font-weight:700;background:rgba(255,255,255,0.03);">
                             <td style="padding:8px;white-space:nowrap;width:18%;">Totales</td>
                             <td style="padding:8px;width:14%;"></td>
@@ -931,8 +900,7 @@
         }
     </script>
     <script>
-    // CONFIG: URL del Apps Script Web App (insertado)
-    const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwl4CAW0eBxnwUgKYf9Eyk8zZQwziVgXYRlpJTVR4ZQb_wdOsLVNL0wZ4Uw1ZVemo_k/exec'; // Web App URL
+    const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwl4CAW0eBxnwUgKYf9Eyk8zZQwziVgXYRlpJTVR4ZQb_wdOsLVNL0wZ4Uw1ZVemo_k/exec';
 
     document.getElementById('downloadReportBtn').addEventListener('click', async function(){
         const start = document.getElementById('downloadStartDate').value;
@@ -945,12 +913,10 @@
 
         status.textContent = 'Recopilando sesiones...';
         try {
-            // fetch sessions for the range (all consoles)
             const res = await fetch(`https://zonagamer-backend.onrender.com/sessions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
             const sessions = await res.json();
             if (!Array.isArray(sessions)) throw new Error('Respuesta inválida del servidor');
 
-            // build rows matching columns C..J
             const rows = sessions.map(s => ({
                 fecha: (s.startDate||'').slice(0,10),
                 empleado: s.username || s.employee || '',
@@ -976,7 +942,6 @@
 
             status.textContent = 'Generando archivo en Sheets...';
             const BACKEND_URL = 'https://zonagamer-backend.onrender.com';
-            // Always use absolute backend URL to avoid Netlify 404 when calling relative paths
             async function postGenerate(url) {
                 const res = await fetch(url, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
                 if (!res.ok) {
