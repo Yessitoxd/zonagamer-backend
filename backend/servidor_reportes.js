@@ -1,6 +1,32 @@
-// ...otros requires y conexión a MongoDB...
+// Requires y configuración inicial
+const express = require('express');
+const mongoose = require('mongoose');
+const fs = require('fs');
+const cors = require('cors');
 
-// Modelo para el estado de cada consola (debe ir después de importar mongoose y la conexión)
+// Backend mínimo para exponer acciones.json como API pública
+const app = express();
+app.use(cors({
+  origin: 'https://zonagamersrs.netlify.app',
+  credentials: true
+}));
+app.use(express.json());
+const PORT = process.env.PORT || 3001;
+
+// Utilidades para leer y guardar archivos JSON individuales
+const dataDir = __dirname + '/data';
+function readJson(file) {
+  const filePath = `${dataDir}/${file}`;
+  if (!fs.existsSync(filePath)) return [];
+  const content = fs.readFileSync(filePath, 'utf8');
+  return content ? JSON.parse(content) : [];
+}
+function writeJson(file, data) {
+  const filePath = `${dataDir}/${file}`;
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
+// Modelo para el estado de cada consola (usa mongoose, por eso va después de require)
 const consoleStateSchema = new mongoose.Schema({
   consoleNumber: { type: Number, required: true, unique: true },
   state: { type: Object, required: true }
@@ -36,32 +62,6 @@ app.post('/console-state/:number', async (req, res) => {
     res.status(500).json({ error: 'Error al guardar estado de consola' });
   }
 });
-const mongoose = require('mongoose');
-// Backend mínimo para exponer acciones.json como API pública
-const express = require('express');
-const fs = require('fs');
-const cors = require('cors');
-
-const app = express();
-app.use(cors({
-  origin: 'https://zonagamersrs.netlify.app',
-  credentials: true
-}));
-app.use(express.json());
-const PORT = process.env.PORT || 3001;
-
-// Utilidades para leer y guardar archivos JSON individuales
-const dataDir = __dirname + '/data';
-function readJson(file) {
-  const filePath = `${dataDir}/${file}`;
-  if (!fs.existsSync(filePath)) return [];
-  const content = fs.readFileSync(filePath, 'utf8');
-  return content ? JSON.parse(content) : [];
-}
-function writeJson(file, data) {
-  const filePath = `${dataDir}/${file}`;
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-}
 
 // --- Manejo de sesión persistente ---
 let session = null;
@@ -173,6 +173,7 @@ function leerDatos() {
     const datos = JSON.parse(fs.readFileSync(__dirname + '/datos.json', 'utf8'));
     // Asegurar que session exista
     if (typeof datos.session === 'undefined') datos.session = null;
+    return datos;
   } catch (e) {
     return { consoles: [], prices: { ps5: {}, switch: {} }, employees: [], sessions: [], workDays: {}, users: [], session: null };
   }
@@ -270,21 +271,39 @@ app.post('/consoles', async (req, res) => {
     let img = type === 'ps5' ? 'PS5.png' : (type === 'switch' ? 'Switch.png' : '');
     const nuevaConsola = new Console({ type, number, name, img });
     await nuevaConsola.save();
+    console.log('POST /consoles - nueva consola añadida:', { type, number });
     res.status(201).json({ message: 'Consola añadida correctamente.' });
   } catch (err) {
     console.error('Error al añadir consola:', err);
     res.status(500).json({ message: 'Error al añadir consola.' });
   }
 });
-app.put('/consoles', (req, res) => {
-  // Actualizar todas las consolas (sobrescribe)
-  Console.deleteMany({})
-    .then(() => Console.insertMany(req.body))
-    .then(() => res.json({ ok: true }))
-    .catch(err => {
-      console.error('Error al guardar consolas en MongoDB:', err);
-      res.status(500).json({ error: 'Error al guardar consolas en MongoDB' });
-    });
+app.put('/consoles', async (req, res) => {
+  // Para evitar sobrescrituras accidentales, solo aceptamos un array para reemplazar
+  const body = req.body;
+  console.log('PUT /consoles payload type:', Array.isArray(body) ? 'array' : typeof body);
+  if (!Array.isArray(body)) {
+    return res.status(400).json({ error: 'Payload inválido: se espera un arreglo de consolas para sobrescribir. Usa POST para añadir una consola individual.' });
+  }
+  // Validar elementos
+  const valid = body.every(c => c && typeof c.type === 'string' && typeof c.number === 'number');
+  if (!valid) return res.status(400).json({ error: 'Array de consolas inválido. Cada elemento debe tener { type: string, number: number }' });
+  try {
+    // Normalizar nombre e imagen antes de insertar
+    const toInsert = body.map(c => ({
+      type: c.type,
+      number: c.number,
+      name: c.type === 'ps5' ? 'Play Station 5' : (c.type === 'switch' ? 'Nintendo Switch' : c.type),
+      img: c.type === 'ps5' ? 'PS5.png' : (c.type === 'switch' ? 'Switch.png' : '')
+    }));
+    await Console.deleteMany({});
+    await Console.insertMany(toInsert);
+    console.log('PUT /consoles - sobrescribiendo consolas, count:', toInsert.length);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error al guardar consolas en MongoDB:', err);
+    res.status(500).json({ error: 'Error al guardar consolas en MongoDB' });
+  }
 });
 
 

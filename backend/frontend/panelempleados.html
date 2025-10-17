@@ -627,12 +627,28 @@
 
     // Guardar datos en la API REST
     async function saveConsoles(newConsoles) {
-        await fetch('https://zonagamer-backend.onrender.com/consoles', {
+        // If it's a single console object, use POST to add it individually.
+        if (!Array.isArray(newConsoles)) {
+            await fetch('https://zonagamer-backend.onrender.com/consoles', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConsoles)
+            });
+            // Refresh local list from server to get _id and latest data
+            await fetchConsoles();
+            return;
+        }
+        // Otherwise it's an array -> bulk replace (PUT)
+        const res = await fetch('https://zonagamer-backend.onrender.com/consoles', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newConsoles)
         });
-        consoles = newConsoles;
+        if (res.ok) {
+            await fetchConsoles();
+        } else {
+            console.error('Error saving consoles bulk:', await res.text());
+        }
     }
     async function savePrices(newPrices) {
         await fetch('https://zonagamer-backend.onrender.com/prices', {
