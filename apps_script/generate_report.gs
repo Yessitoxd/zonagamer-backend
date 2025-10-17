@@ -17,23 +17,39 @@ function doPost(e){
       }
       values.push([fechaVal,r.empleado||'',r.consola||'',typeof r.dinero!=='undefined'?r.dinero:'',r.tiempo||'',r.inicio||'',r.fin||'',r.comentario||'']);
     });
-    if(values.length>0)sheet.getRange(startRow,3,values.length,values[0].length).setValues(values);
-    // apply formatting: date format for Fecha (col C), dinero as number (col F), comentario no-wrap (col J)
-    try{
-      if(values.length>0){
+    if(values.length>0){
+      var colFecha = values.map(function(r){return [r[0]];});
+      var colEmpleado = values.map(function(r){return [r[1]];});
+      var colConsola = values.map(function(r){return [r[2]];});
+      var colDinero = values.map(function(r){return [r[3]];});
+      var colTiempo = values.map(function(r){return [r[4]];});
+      var colInicio = values.map(function(r){return [r[5]];});
+      var colFin = values.map(function(r){return [r[6]];});
+      var colComentario = values.map(function(r){return [r[7]];});
+      sheet.getRange(startRow,3,values.length,1).setValues(colFecha);
+      sheet.getRange(startRow,4,values.length,1).setValues(colEmpleado);
+      sheet.getRange(startRow,5,values.length,1).setValues(colConsola);
+      sheet.getRange(startRow,6,values.length,1).setValues(colDinero);
+      sheet.getRange(startRow,7,values.length,1).setValues(colTiempo);
+      sheet.getRange(startRow,8,values.length,1).setValues(colInicio);
+      sheet.getRange(startRow,9,values.length,1).setValues(colFin);
+      sheet.getRange(startRow,10,values.length,1).setValues(colComentario);
+      try{
         sheet.getRange(startRow,3,values.length,1).setNumberFormat('dd/mm/yyyy');
         sheet.getRange(startRow,6,values.length,1).setNumberFormat('#,##0.00');
-        sheet.getRange(startRow,10,values.length,1).setWrap(false);
-      }
-      // set reasonable column widths C..J
-      sheet.setColumnWidth(3,100); // Fecha
-      sheet.setColumnWidth(4,140); // Empleado
-      sheet.setColumnWidth(5,140); // Consola
-      sheet.setColumnWidth(6,100); // Dinero
-      sheet.setColumnWidth(7,80);  // Tiempo
-      sheet.setColumnWidth(8,80);  // Inicio
-      sheet.setColumnWidth(9,80);  // Fin
-      sheet.setColumnWidth(10,300); // Comentario
+        sheet.getRange(startRow,10,values.length,1).setWrap(true);
+        for(var i=0;i<values.length;i++){ try{ sheet.setRowHeight(startRow+i,40); }catch(er){} }
+      }catch(e){}
+    }
+    try{
+      sheet.setColumnWidth(3,140);
+      sheet.setColumnWidth(4,180);
+      sheet.setColumnWidth(5,140);
+      sheet.setColumnWidth(6,120);
+      sheet.setColumnWidth(7,100);
+      sheet.setColumnWidth(8,100);
+      sheet.setColumnWidth(9,100);
+      sheet.setColumnWidth(10,400);
     }catch(e){}
     var totalsRow=startRow+values.length;sheet.getRange(totalsRow,2).setValue('Total');
     var totalUses=(payload.totals&&payload.totals.totalUses!=null)?payload.totals.totalUses:values.length;
