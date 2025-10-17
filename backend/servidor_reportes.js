@@ -242,7 +242,21 @@ app.post('/generate-report', async (req, res) => {
     });
     const text = await r.text();
     // intentar parsear JSON de respuesta
-    try { const json = JSON.parse(text); return res.json(json); } catch (e) { return res.status(r.status || 200).send(text); }
+    try {
+      const json = JSON.parse(text);
+      return res.json(json);
+    } catch (e) {
+      // Detect HTML responses (Google login page, 401/404 HTML, etc.)
+      const snippet = (text || '').toString().slice(0, 1000);
+      const isHtml = /^\s*<\!doctype html/i.test(snippet) || /^\s*<html/i.test(snippet) || (r.headers && (r.headers.get ? (r.headers.get('content-type') || '') : '').includes('text/html'));
+      console.error('Sheets webapp proxy: non-JSON response', { status: r.status, isHtml });
+      if (isHtml) {
+        // Return a JSON error instead of raw HTML to keep front-end readable
+        return res.status(502).json({ error: 'Sheets webapp returned HTML (possible auth/permissions issue)', status: r.status, bodySnippet: snippet });
+      }
+      // Unknown non-JSON case
+      return res.status(r.status || 200).json({ error: 'Invalid JSON from sheets webapp', status: r.status, bodySnippet: snippet });
+    }
   } catch (err) {
     console.error('Error proxying generate-report:', err);
     res.status(500).json({ error: err.message });
