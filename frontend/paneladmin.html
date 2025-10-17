@@ -1295,9 +1295,7 @@
             };
 
             status.textContent = 'Generando archivo en Sheets...';
-            // Post to backend proxy to avoid CORS issues. Use robust handling and fallback to absolute backend URL.
             const BACKEND_URL = 'https://zonagamer-backend.onrender.com';
-            // Always use absolute backend URL to avoid Netlify returning 404 for relative /generate-report
             async function postGenerate(url) {
                 const res = await fetch(url, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
                 if (!res.ok) {
@@ -1309,13 +1307,7 @@
                 try { return JSON.parse(txt); } catch(e) { throw new Error('Invalid JSON response: ' + txt); }
             }
 
-            let json;
-            try {
-                json = await postGenerate('/generate-report');
-            } catch (err) {
-                console.warn('Relative /generate-report failed, retrying with BACKEND_URL:', err.message);
-                json = await postGenerate(BACKEND_URL + '/generate-report');
-            }
+            const json = await postGenerate(BACKEND_URL + '/generate-report');
 
             if (json.error) throw new Error(json.error);
             status.innerHTML = 'Archivo listo: <a href="' + json.downloadUrl + '" target="_blank">Abrir XLSX</a>';
