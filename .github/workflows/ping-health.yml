@@ -9,30 +9,42 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Curl health endpoint
-        env:
-          TARGET_URL: https://zonagamer-backend.onrender.com/health
+      - name: Ping health endpoint
+        id: ping
         run: |
+          TARGET_URL="https://zonagamer-backend.onrender.com/health"
           echo "Pinging $TARGET_URL"
-          status=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET_URL" || echo "000")
-          echo "HTTP status: $status"
-          if [ "$status" != "200" ]; then
-            echo "Health check failed with status $status"
-            exit 1
-          fi
-name: Ping backend health
+          status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$TARGET_URL" || echo "000")
+          echo "Got HTTP status: $status"
+          echo "status=$status" >> $GITHUB_OUTPUT
 
-on:
-  schedule:
-    - cron: '*/5 * * * *'
-  workflow_dispatch:
+      - name: Create or comment Issue on failure
+        if: steps.ping.outputs.status != '200'
+        uses: actions/github-script@v6
+        env:
+          PING_STATUS: ${{ steps.ping.outputs.status }}
+          PING_TARGET: https://zonagamer-backend.onrender.com/health
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const status = process.env.PING_STATUS || 'unknown';
+            const target = process.env.PING_TARGET || 'unknown';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const title = 'Ping failed: ' + target + ' returned ' + status;
+            const body = 'Automated health check failed at ' + new Date().toISOString() + '\n\n' +
+                         'Endpoint: ' + target + '\n' +
+                         'HTTP status: ' + status + '\n\n' +
+                         'This issue was created by the ping-health GitHub Actions workflow.';
 
-jobs:
-  ping:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Curl health endpoint
-        run: |
-          set -e
-          echo "Pinging health endpoint"
-          curl -fsS --max-time 10 https://zonagamer-backend.onrender.com/health || true
+            // Look for an existing open issue with the same title
+            const issuesResp = await github.issues.listForRepo({ owner, repo, state: 'open' });
+            const issues = issuesResp.data || [];
+            const exists = issues.find(i => i.title === title);
+            if (!exists) {
+              await github.issues.create({ owner, repo, title, body });
+            } else {
+              await github.issues.createComment({ owner, repo, issue_number: exists.number, body: 'Ping failed again at ' + new Date().toISOString() + '. HTTP status: ' + status });
+            }
+            // Fail the step so the workflow run is marked as failed
+            throw new Error('Health check failed: HTTP ' + status);
