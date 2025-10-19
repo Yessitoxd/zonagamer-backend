@@ -474,52 +474,21 @@ app.get('/sessions', async (req, res) => {
     res.status(500).json({ error: 'Error al leer sesiones filtradas' });
   }
 });
-// Endpoint para aÃ±adir una consola (POST)
+// Endpoint para añadir una consola (POST)
 app.post('/consoles', async (req, res) => {
   try {
-    const { type, number } = req.body;
-    if (!type || !number) {
+    const { type, number } = req.body || {};
+    if (!type || typeof number === 'undefined') {
       return res.status(400).json({ message: 'Faltan datos requeridos.' });
     }
-    // Validar que no exista una consola con ese nÃºmero
+    // Validar que no exista otra consola con ese número
     const existe = await Console.findOne({ number });
-    if (existe) {
-      return res.status(400).json({ message: 'Ya existe una consola con ese nÃºmero.' });
-    }
-    // Crear nombre e imagen automÃ¡ticamente
-    let name = type === 'ps5' ? 'Play Station 5' : (type === 'switch' ? 'Nintendo Switch' : type);
-    let img = type === 'ps5' ? 'PS5.png' : (type === 'switch' ? 'Switch.png' : '');
-    const nuevaConsola = new Console({ type, number, name, img });
-    await nuevaConsola.save();
-    console.log('POST /consoles - nueva consola aÃ±adida:', { type, number });
-    res.status(201).json({ message: 'Consola aÃ±adida correctamente.' });
-  } catch (err) {
-    console.error('Error al aÃ±adir consola:', err);
-    res.status(500).json({ message: 'Error al aÃ±adir consola.' });
-  }
-});
-app.put('/consoles', async (req, res) => {
-  // Para evitar sobrescrituras accidentales, solo aceptamos un array para reemplazar
-  const body = req.body;
-  console.log('PUT /consoles payload type:', Array.isArray(body) ? 'array' : typeof body);
-  if (!Array.isArray(body)) {
-    return res.status(400).json({ error: 'Payload invÃ¡lido: se espera un arreglo de consolas para sobrescribir. Usa POST para aÃ±adir una consola individual.' });
-  }
-  // Validar elementos
-  const valid = body.every(c => c && typeof c.type === 'string' && typeof c.number === 'number');
-  if (!valid) return res.status(400).json({ error: 'Array de consolas invÃ¡lido. Cada elemento debe tener { type: string, number: number }' });
-  try {
-    // Normalizar nombre e imagen antes de insertar
-    const toInsert = body.map(c => ({
-      type: c.type,
-      number: c.number,
-      name: c.type === 'ps5' ? 'Play Station 5' : (c.type === 'switch' ? 'Nintendo Switch' : c.type),
-      img: c.type === 'ps5' ? 'PS5.png' : (c.type === 'switch' ? 'Switch.png' : '')
-    }));
-    await Console.deleteMany({});
-    await Console.insertMany(toInsert);
-    console.log('PUT /consoles - sobrescribiendo consolas, count:', toInsert.length);
-    res.json({ ok: true });
+    if (existe) return res.status(400).json({ message: 'Ya existe una consola con ese número.' });
+    const name = type === 'ps5' ? 'Play Station 5' : (type === 'switch' ? 'Nintendo Switch' : type);
+    const img = type === 'ps5' ? 'PS5.png' : (type === 'switch' ? 'Switch.png' : '');
+    const nueva = new Console({ type, number, name, img });
+    await nueva.save();
+    res.status(201).json({ message: 'Consola añadida correctamente.' });
   } catch (err) {
     console.error('Error al guardar consolas en MongoDB:', err);
     res.status(500).json({ error: 'Error al guardar consolas en MongoDB' });
