@@ -602,6 +602,36 @@ app.post('/earnings', async (req, res) => {
 });
 
 // Solo debe haber un app.listen al final del archivo
+// Global error handler to ensure CORS headers and JSON on unexpected errors
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err && err.stack ? err.stack : err);
+  try {
+    const origin = req.headers && req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (allowedOrigins && allowedOrigins.length) {
+      res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  } catch (e) {
+    console.error('Error setting CORS headers in error handler:', e);
+  }
+  const status = (err && err.status) ? err.status : 500;
+  res.status(status).json({ error: (err && err.message) ? err.message : 'Internal Server Error' });
+});
+
+// Catch unhandled rejections and uncaught exceptions to aid debugging (will not exit the process here)
+process.on('unhandledRejection', (reason, p) => {
+  console.error('Unhandled Rejection at:', p, 'reason:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception thrown:', err && err.stack ? err.stack : err);
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor Zonagamer escuchando en puerto ${PORT}`);
 });
