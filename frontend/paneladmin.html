@@ -1263,8 +1263,8 @@
 
             status.textContent = 'Generando archivo en servidor...';
             // POST to generate-report-sa which returns the XLSX binary and Content-Disposition filename
-            const BACKEND_ORIGIN = '';
-            const endpoint = '/generate-report-sa';
+            const BACKEND_ORIGIN = 'https://zonagamer-backend.onrender.com';
+            const endpoint = BACKEND_ORIGIN + '/generate-report-sa';
             const r = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
             if (!r.ok) {
                 const txt = await r.text().catch(()=>'');
