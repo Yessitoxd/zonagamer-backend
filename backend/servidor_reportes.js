@@ -329,8 +329,8 @@ app.post('/generate-report-sa', async (req, res) => {
     } catch (err) {
       console.error('googleReports failed:', err && err.message ? err.message : err);
       // If it's a quota/storage error or other Drive issue, fallback to local
-      const isQuota = (err && err.message && err.message.toLowerCase().includes('quota')) || (err && err.response && err.response.data && JSON.stringify(err.response.data).toLowerCase().includes('quota'));
-      if (localReports && isQuota) {
+      // Always try local fallback if available (covers quota and other Drive errors)
+      if (localReports) {
         try {
           const { rows, sheetName } = req.body || {};
           const buf = await localReports.exportReportFromTemplate(rows, { sheetName });
