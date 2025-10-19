@@ -1235,8 +1235,8 @@
         if (new Date(start) > new Date(end)) return alert('La fecha inicio debe ser anterior o igual a la fecha fin');
 
         status.textContent = 'Recopilando sesiones...';
-        try {
-            const res = await fetch(`/sessions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+            try {
+            const res = await fetch(`https://zonagamer-backend.onrender.com/sessions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
             const sessions = await res.json();
             if (!Array.isArray(sessions)) throw new Error('Respuesta inválida del servidor');
 
