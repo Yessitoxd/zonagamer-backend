@@ -418,7 +418,7 @@
                 </div>
                 <div id="mainbox-session-descargar" class="mainbox-session" style="display:none;">
                     <h2>Descargar Reporte</h2>
-                    <div style="color:#fff;opacity:0.9;margin-bottom:12px;">Selecciona una fecha o un rango y pulsa <strong>Descargar XLS</strong>. Esto usará una plantilla de Google Sheets (Apps Script) para generar el archivo.</div>
+                    <div style="color:#fff;opacity:0.9;margin-bottom:12px;">Selecciona una fecha o un rango y pulsa <strong>Descargar XLS</strong>. El archivo se generará desde el servidor y se descargará automáticamente.</div>
                     <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
                         <label style="color:#fff;">Desde</label>
                         <input type="date" id="downloadStartDate" style="padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#fff;" />
@@ -1226,8 +1226,6 @@
     })();
     </script>
     <script>
-    const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwl4CAW0eBxnwUgKYf9Eyk8zZQwziVgXYRlpJTVR4ZQb_wdOsLVNL0wZ4Uw1ZVemo_k/exec'; 
-
     document.getElementById('downloadReportBtn').addEventListener('click', async function(){
         const start = document.getElementById('downloadStartDate').value;
         const end = document.getElementById('downloadEndDate').value || start;
@@ -1235,11 +1233,10 @@
         status.textContent = '';
         if (!start) return alert('Selecciona al menos la fecha inicio');
         if (new Date(start) > new Date(end)) return alert('La fecha inicio debe ser anterior o igual a la fecha fin');
-        if (!SHEETS_WEBAPP_URL) return alert('No está configurada la URL del WebApp de Google Sheets en el cliente. Pega la URL en la variable SHEETS_WEBAPP_URL.');
 
         status.textContent = 'Recopilando sesiones...';
         try {
-            const res = await fetch(`https://zonagamer-backend.onrender.com/sessions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+            const res = await fetch(`/sessions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
             const sessions = await res.json();
             if (!Array.isArray(sessions)) throw new Error('Respuesta inválida del servidor');
 
@@ -1260,36 +1257,38 @@
             const dayLabel = (start && end && start !== end) ? (start + ' al ' + end) : start;
 
             const payload = {
-                title: `Reporte ${start}` + (start !== end ? ` - ${end}` : ''),
-                summary: { dayReportCellF5: dayLabel, dayTotalCellF8: `C$ ${totalMoney.toFixed(2)}` },
-                rows: rows,
-                totals: { totalUses: totalUses, totalMoney: totalMoney, totalTimeMinutes: totalTimeMinutes }
+                summary: start === end ? { dayReport: start, totalMoney } : { start, end, totalMoney },
+                rows: rows
             };
 
-            status.textContent = 'Generando archivo en Sheets...';
-            const BACKEND_URL = 'https://zonagamer-backend.onrender.com';
-            async function postGenerate(url) {
-                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-                if (!res.ok) {
-                    const txt = await res.text().catch(()=>'');
-                    throw new Error('HTTP ' + res.status + ' - ' + (txt || res.statusText));
-                }
-                const txt = await res.text();
-                if (!txt) throw new Error('Empty response from server');
-                try { return JSON.parse(txt); } catch(e) { throw new Error('Invalid JSON response: ' + txt); }
+            status.textContent = 'Generando archivo en servidor...';
+            // POST to generate-report-sa which returns the XLSX binary and Content-Disposition filename
+            const BACKEND_ORIGIN = '';
+            const endpoint = '/generate-report-sa';
+            const r = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+            if (!r.ok) {
+                const txt = await r.text().catch(()=>'');
+                throw new Error('HTTP ' + r.status + ' - ' + (txt || r.statusText));
             }
-
-            let json;
-            try {
-                json = await postGenerate('/generate-report');
-            } catch (err) {
-                console.warn('Relative /generate-report failed, retrying with BACKEND_URL:', err.message);
-                json = await postGenerate(BACKEND_URL + '/generate-report');
+            const blob = await r.blob();
+            // Extract filename from Content-Disposition
+            let filename = 'reporte.xlsx';
+            const cd = r.headers.get('Content-Disposition') || r.headers.get('content-disposition');
+            if (cd) {
+                const m = /filename\*=UTF-8''([^;\n\r]+)/i.exec(cd) || /filename="?([^";]+)"?/i.exec(cd);
+                if (m && m[1]) filename = decodeURIComponent(m[1].replace(/\"/g, '').trim());
             }
+            // Trigger download
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            status.textContent = 'Archivo descargado: ' + filename;
 
-            if (json.error) throw new Error(json.error);
-            status.innerHTML = 'Archivo listo: <a href="' + json.downloadUrl + '" target="_blank">Abrir XLSX</a>';
-            window.open(json.downloadUrl, '_blank');
         } catch (err) {
             console.error(err);
             status.textContent = 'Error: ' + (err.message || err);
