@@ -1,2 +1,7 @@
 "backend/zonagamer-475517-14e074bf2bab.json" 
 "backend/key.b64" 
+
+# service account keys
+backend/key.b64
+backend/backend/zonagamer-*.json
+
