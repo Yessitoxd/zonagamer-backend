@@ -37,7 +37,6 @@ jobs:
                          'HTTP status: ' + status + '\n\n' +
                          'This issue was created by the ping-health GitHub Actions workflow.';
 
-            // Look for an existing open issue with the same title
             const issuesResp = await github.issues.listForRepo({ owner, repo, state: 'open' });
             const issues = issuesResp.data || [];
             const exists = issues.find(i => i.title === title);
@@ -46,5 +45,6 @@ jobs:
             } else {
               await github.issues.createComment({ owner, repo, issue_number: exists.number, body: 'Ping failed again at ' + new Date().toISOString() + '. HTTP status: ' + status });
             }
+
             // Fail the step so the workflow run is marked as failed
             throw new Error('Health check failed: HTTP ' + status);
