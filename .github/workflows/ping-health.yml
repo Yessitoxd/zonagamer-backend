@@ -35,7 +35,8 @@ jobs:
             const body = 'Automated health check failed at ' + new Date().toISOString() + '\n\n' +
                          'Endpoint: ' + target + '\n' +
                          'HTTP status: ' + status + '\n\n' +
-                         'This issue was created by the ping-health GitHub Actions workflow.';
+                         'This issue was created by the ping-health GitHub Actions workflow.' + '\n\n' +
+                         'cc @Yessitoxd';
 
             const issuesResp = await github.issues.listForRepo({ owner, repo, state: 'open' });
             const issues = issuesResp.data || [];
@@ -43,7 +44,7 @@ jobs:
             if (!exists) {
               await github.issues.create({ owner, repo, title, body });
             } else {
-              await github.issues.createComment({ owner, repo, issue_number: exists.number, body: 'Ping failed again at ' + new Date().toISOString() + '. HTTP status: ' + status });
+              await github.issues.createComment({ owner, repo, issue_number: exists.number, body: 'Ping failed again at ' + new Date().toISOString() + '. HTTP status: ' + status + '\n\n' + 'cc @Yessitoxd' });
             }
 
             // Fail the step so the workflow run is marked as failed
