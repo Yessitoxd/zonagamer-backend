@@ -10,5 +10,6 @@
     "express": "^5.1.0",
     "mongoose": "^8.19.0",
     "googleapis": "^121.0.0"
+    ,"exceljs": "^5.1.0"
   }
 }

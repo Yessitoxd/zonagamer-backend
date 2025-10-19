@@ -10,6 +10,12 @@ try {
 } catch (e) {
   googleReports = null;
 }
+let localReports;
+try {
+  localReports = require('./lib/localReports');
+} catch (e) {
+  localReports = null;
+}
 
 // Backend mÃ­nimo para exponer acciones.json como API pÃºblica
 const app = express();
@@ -297,15 +303,46 @@ app.post('/generate-report', async (req, res) => {
 // Endpoint server-side usando Service Account para exportar XLSX
 app.post('/generate-report-sa', async (req, res) => {
   if (!googleReports || !googleReports.exportReportAsXlsx) {
+    // If googleReports not available, try localReports before failing
+    if (localReports && localReports.exportReportFromTemplate) {
+      try {
+        const { rows, sheetName } = req.body || {};
+        const buf = await localReports.exportReportFromTemplate(rows, { sheetName });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename="reporte.xlsx"');
+        return res.send(buf);
+      } catch (err) {
+        console.error('Local export failed:', err);
+        return res.status(500).json({ error: 'Local export failed', detail: err.message });
+      }
+    }
     return res.status(500).json({ error: 'Server-side exporter not available' });
   }
   try {
     const { rows, templateSpreadsheetId, sheetName } = req.body || {};
     // exportReportAsXlsx acepta rows y opciones
-    const buf = await googleReports.exportReportAsXlsx(rows, { templateSpreadsheetId, sheetName });
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="reporte.xlsx"');
-    return res.send(buf);
+    try {
+      const buf = await googleReports.exportReportAsXlsx(rows, { templateSpreadsheetId, sheetName });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="reporte.xlsx"');
+      return res.send(buf);
+    } catch (err) {
+      console.error('googleReports failed:', err && err.message ? err.message : err);
+      // If it's a quota/storage error or other Drive issue, fallback to local
+      const isQuota = (err && err.message && err.message.toLowerCase().includes('quota')) || (err && err.response && err.response.data && JSON.stringify(err.response.data).toLowerCase().includes('quota'));
+      if (localReports && isQuota) {
+        try {
+          const { rows, sheetName } = req.body || {};
+          const buf = await localReports.exportReportFromTemplate(rows, { sheetName });
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          res.setHeader('Content-Disposition', 'attachment; filename="reporte_fallback.xlsx"');
+          return res.send(buf);
+        } catch (le) {
+          console.error('Local fallback failed:', le);
+        }
+      }
+      return res.status(500).json({ error: err.message || 'Export failed' });
+    }
   } catch (err) {
     console.error('Error en /generate-report-sa:', err);
     return res.status(500).json({ error: err.message || 'Export failed' });
