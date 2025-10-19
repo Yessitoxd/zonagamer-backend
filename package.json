@@ -9,7 +9,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "mongoose": "^8.19.0",
-    "googleapis": "^121.0.0"
-    ,"exceljs": "^5.1.0"
+    "googleapis": "^121.0.0",
+    "exceljs": "^4.3.0"
   }
 }
