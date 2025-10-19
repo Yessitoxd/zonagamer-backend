@@ -1271,13 +1271,37 @@
                 throw new Error('HTTP ' + r.status + ' - ' + (txt || r.statusText));
             }
             const blob = await r.blob();
-            // Extract filename from Content-Disposition
-            let filename = 'reporte.xlsx';
+            // Build a client-side filename using the selected dates (fallback to server header if present)
+            function formatDateForFilename(iso) {
+                if (!iso) return '';
+                // Expecting YYYY-MM-DD; otherwise try Date parse
+                if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+                    return iso.slice(8,10) + '-' + iso.slice(5,7) + '-' + iso.slice(0,4);
+                }
+                const d = new Date(iso);
+                if (!isNaN(d.getTime())) {
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const yyyy = d.getFullYear();
+                    return `${dd}-${mm}-${yyyy}`;
+                }
+                return iso.replace(/[:\s]/g, '_');
+            }
+
+            const clientFilename = (start && end && start !== end)
+                ? `Reporte ${formatDateForFilename(start)} al ${formatDateForFilename(end)}.xlsx`
+                : `Reporte ${formatDateForFilename(start)}.xlsx`;
+
+            // Try to read server-provided filename from Content-Disposition as a fallback
+            let filename = clientFilename;
             const cd = r.headers.get('Content-Disposition') || r.headers.get('content-disposition');
             if (cd) {
                 const m = /filename\*=UTF-8''([^;\n\r]+)/i.exec(cd) || /filename="?([^";]+)"?/i.exec(cd);
-                if (m && m[1]) filename = decodeURIComponent(m[1].replace(/\"/g, '').trim());
+                if (m && m[1]) {
+                    try { filename = decodeURIComponent(m[1].replace(/\"/g, '').trim()); } catch(e) { filename = m[1].replace(/\"/g,'').trim(); }
+                }
             }
+
             // Trigger download
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
