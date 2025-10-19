@@ -3,6 +3,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const cors = require('cors');
+// intentar cargar el helper de exportación (opcional)
+let googleReports;
+try {
+  googleReports = require('./lib/googleReports');
+} catch (e) {
+  googleReports = null;
+}
 
 // Backend mÃ­nimo para exponer acciones.json como API pÃºblica
 const app = express();
@@ -284,6 +291,24 @@ app.post('/generate-report', async (req, res) => {
   } catch (err) {
     console.error('Error proxying generate-report:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Endpoint server-side usando Service Account para exportar XLSX
+app.post('/generate-report-sa', async (req, res) => {
+  if (!googleReports || !googleReports.exportReportAsXlsx) {
+    return res.status(500).json({ error: 'Server-side exporter not available' });
+  }
+  try {
+    const { rows, templateSpreadsheetId, sheetName } = req.body || {};
+    // exportReportAsXlsx acepta rows y opciones
+    const buf = await googleReports.exportReportAsXlsx(rows, { templateSpreadsheetId, sheetName });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="reporte.xlsx"');
+    return res.send(buf);
+  } catch (err) {
+    console.error('Error en /generate-report-sa:', err);
+    return res.status(500).json({ error: err.message || 'Export failed' });
   }
 });
 function leerDatos() {
