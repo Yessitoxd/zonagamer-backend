@@ -2,6 +2,28 @@
 
 on:
   schedule:
+    - cron: '*/5 * * * *' # every 5 minutes
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl health endpoint
+        env:
+          TARGET_URL: https://zonagamer-backend.onrender.com/health
+        run: |
+          echo "Pinging $TARGET_URL"
+          status=$(curl -s -o /dev/null -w "%{http_code}" "$TARGET_URL" || echo "000")
+          echo "HTTP status: $status"
+          if [ "$status" != "200" ]; then
+            echo "Health check failed with status $status"
+            exit 1
+          fi
+name: Ping backend health
+
+on:
+  schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
 
