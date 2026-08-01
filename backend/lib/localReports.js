@@ -206,7 +206,29 @@ async function exportReportFromTemplate(rows, options = {}) {
     worksheet.getColumn(10).width = 40; // Comentario
   } catch (e) {}
 
-  const buffer = await workbook.xlsx.writeBuffer();
+  // Optional second sheet for product sales (bebidas/snacks)
+  try {
+    const productRows = Array.isArray(options.productRows) ? options.productRows : [];
+    const existing = workbook.getWorksheet('Bebidas');
+    if (existing) workbook.removeWorksheet(existing.id);
+    const wsProducts = workbook.addWorksheet('Bebidas');
+    wsProducts.addRow(['Trabajador', 'Descripción', 'Precio']);
+    wsProducts.getRow(1).font = { bold: true };
+    productRows.forEach((r) => {
+      const worker = r.trabajador || r.employee || '';
+      const description = r.descripcion || r.description || r.productName || '';
+      const price = Number(r.precio || r.price || 0) || 0;
+      wsProducts.addRow([worker, description, price]);
+    });
+    wsProducts.getColumn(1).width = 24;
+    wsProducts.getColumn(2).width = 52;
+    wsProducts.getColumn(3).width = 14;
+    wsProducts.getColumn(3).numFmt = '#,##0.00';
+  } catch (e) {
+    // keep report generation alive even if products sheet fails
+  }
+
+  const finalBuffer = await workbook.xlsx.writeBuffer();
   // Build a filename based on summary (single day or range)
   let filename = 'reporte.xlsx';
   try {
@@ -222,7 +244,7 @@ async function exportReportFromTemplate(rows, options = {}) {
     if (nameDate) filename = `Reporte ${nameDate}.xlsx`;
   } catch (e) {}
 
-  return { buffer: Buffer.from(buffer), filename };
+  return { buffer: Buffer.from(finalBuffer), filename };
 }
 
 module.exports = { exportReportFromTemplate };

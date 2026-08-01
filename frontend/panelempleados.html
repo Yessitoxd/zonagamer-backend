@@ -547,6 +547,18 @@
     <div class="main-container" id="mainPanel">
         <aside id="sidebar" class="sidebar collapsed">
             <h2 class="earnings-display" id="totalEarningsDisplay">Dinero obtenido: C$ 0</h2>
+            <div style="margin-bottom:14px;">
+                <div style="font-weight:700;margin-bottom:6px;">Bebidas / Productos</div>
+                <select id="productSelect" style="width:100%;padding:8px;border-radius:8px;border:1px solid #81fde9;background:rgba(255,255,255,0.15);color:#fff;">
+                    <option value="">Selecciona tu producto</option>
+                </select>
+                <input id="productQuantity" type="number" min="1" value="1" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:1px solid #81fde9;background:rgba(255,255,255,0.15);color:#fff;" />
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                    <button id="sellProductBtn" class="control-btn" style="flex:1;">Vender</button>
+                    <button id="cancelProductBtn" class="control-btn reset-btn" style="flex:1;">Cancelar</button>
+                </div>
+            </div>
+            <div id="productsSidebarList" style="max-height:180px;overflow:auto;margin-bottom:12px;font-size:0.92em;"></div>
             <button class="logout-btn" id="logoutBtn">Cerrar Sesión</button>
         </aside>
 
@@ -563,6 +575,8 @@
         const usernameDisplay = document.getElementById('usernameDisplay');
         const sidebar = document.getElementById('sidebar');
         const logoutBtn = document.getElementById('logoutBtn');
+        window.isYesseira = false;
+            window.currentUser = null;
         try {
             const alarmEl = document.getElementById('alarm-sound');
             if (alarmEl) {
@@ -598,6 +612,8 @@
             const r = await fetch('https://zonagamer-backend.onrender.com/session', { credentials: 'include' });
             if (r.ok) {
                 const s = await r.json();
+                window.currentUser = s || null;
+                if (s && s.username === 'Yesseira') window.isYesseira = true;
                 if (s && s.username && s.role === 'trabajador') {
                     employeeName = s.username;
                 } else {
@@ -663,6 +679,7 @@
 
     let consoles = [];
     let prices = { ps5: {}, switch: {} };
+    let products = [];
     let employees = [];
 
     // Cargar datos desde la API REST
@@ -675,11 +692,19 @@
         const pricesArray = await res.json();
         prices = { ps5: {}, switch: {} };
         pricesArray.forEach(p => {
-            if (p.console && p.duration && p.price) {
+            if (p.console && p.duration && typeof p.price !== 'undefined') {
                 if (!prices[p.console]) prices[p.console] = {};
-                prices[p.console][p.duration] = p.price;
+                prices[p.console][p.duration] = {
+                    price: Number(p.price) || 0,
+                    label: (p.label || '').toString().trim()
+                };
             }
         });
+    }
+    async function fetchProducts() {
+        const res = await fetch('https://zonagamer-backend.onrender.com/products');
+        const list = await res.json().catch(() => []);
+        products = Array.isArray(list) ? list : [];
     }
     async function fetchEmployees() {
         const res = await fetch('https://zonagamer-backend.onrender.com/employees');
@@ -779,6 +804,7 @@
                         <div class="transfer-btns hidden">
                             <button class="control-btn reset-btn cancel-transfer-btn">Cancelar</button>
                         </div>
+                        ${window.isYesseira ? '<div style="margin-top:8px;display:flex;justify-content:center;"><button class="control-btn modify-price-btn" style="background:#ffcc00;color:#000;border-radius:8px;padding:6px 10px;">Modificar precio</button></div>' : ''}
                     </div>
                 `;
                 consoleGrid.appendChild(card);
@@ -818,11 +844,80 @@
                 const option = document.createElement('option');
                 const mins = parseFloat(minutes);
                 const secondsValue = Math.round(mins * 60);
+                const entry = consolePrices[minutes] || {};
+                const finalPrice = (typeof entry === 'object') ? entry.price : entry;
+                const finalLabel = (typeof entry === 'object') ? entry.label : '';
                 option.value = secondsValue;
-                option.dataset.price = consolePrices[minutes];
-                option.textContent = formatDuration(minutes);
+                option.dataset.price = Number(finalPrice) || 0;
+                option.textContent = finalLabel || formatDuration(minutes);
                 timeSelect.appendChild(option);
             });
+        }
+
+        function renderProductsSidebar() {
+            const select = document.getElementById('productSelect');
+            const listEl = document.getElementById('productsSidebarList');
+            if (!select || !listEl) return;
+            select.innerHTML = '<option value="">Selecciona tu producto</option>';
+            if (!Array.isArray(products) || products.length === 0) {
+                listEl.innerHTML = '<div style="opacity:0.85;">No hay productos disponibles.</div>';
+                return;
+            }
+            products.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p._id || '';
+                option.dataset.name = p.name || '';
+                option.dataset.description = p.description || '';
+                option.dataset.price = Number(p.price) || 0;
+                option.textContent = `${p.name || 'Producto'} - C$ ${Number(p.price) || 0}`;
+                select.appendChild(option);
+            });
+            listEl.innerHTML = products.map(p => `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);">${p.name || 'Producto'} - C$ ${Number(p.price) || 0}</div>`).join('');
+        }
+
+        async function sellSelectedProduct() {
+            const select = document.getElementById('productSelect');
+            const quantityInput = document.getElementById('productQuantity');
+            if (!select || !select.value) {
+                alert('Selecciona un producto antes de vender.');
+                return;
+            }
+            const quantity = Math.floor(Number(quantityInput && quantityInput.value ? quantityInput.value : 1));
+            if (!quantity || quantity < 1 || !Number.isFinite(quantity)) {
+                alert('Cantidad inválida.');
+                return;
+            }
+            const selected = select.options[select.selectedIndex];
+            const unitPrice = Number(selected.dataset.price || 0);
+            const totalPrice = Number((unitPrice * quantity).toFixed(2));
+            const baseDescription = selected.dataset.description || selected.dataset.name || 'Producto';
+            const payload = {
+                productId: select.value,
+                productName: selected.dataset.name || selected.textContent || 'Producto',
+                description: baseDescription,
+                quantity,
+                unitPrice,
+                price: totalPrice,
+                employee: (window.currentUser && window.currentUser.username) ? window.currentUser.username : ''
+            };
+            try {
+                const res = await fetch('https://zonagamer-backend.onrender.com/product-sales', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || 'No se pudo guardar la venta');
+                }
+                addEarnings(totalPrice);
+                select.value = '';
+                if (quantityInput) quantityInput.value = '1';
+            } catch (e) {
+                console.error('Error vendiendo producto:', e);
+                alert('No se pudo registrar la venta del producto.');
+            }
         }
 
         async function loadEarnings() {
@@ -1154,6 +1249,7 @@
                 card.transferBtns.classList.add('hidden');
                 timeSelect.value = "";
                 card.querySelector('.price-display').textContent = `C$ 0`;
+                delete card.dataset.overridePrice;
                 card.sessionStartTime = null;
                 card.totalSeconds = 0;
                 card.elapsedSeconds = 0;
@@ -1215,7 +1311,12 @@
                 const priceDisplay = card.querySelector('.price-display');
                 const selectedOption = timeSelect.options[timeSelect.selectedIndex];
                 const selectedPrice = selectedOption.dataset.price;
-                priceDisplay.textContent = `C$ ${selectedPrice || '0'}`;
+                const overridePrice = card.dataset.overridePrice ? card.dataset.overridePrice : null;
+                if (overridePrice) {
+                    priceDisplay.textContent = `C$ ${overridePrice} (override)`;
+                } else {
+                    priceDisplay.textContent = `C$ ${selectedPrice || '0'}`;
+                }
             });
 
             startBtn.addEventListener('click', () => {
@@ -1227,8 +1328,10 @@
                 const selectedOption = timeSelect.options[timeSelect.selectedIndex];
                 const selectedValue = selectedOption.value;
                 const selectedPrice = parseFloat(selectedOption.dataset.price);
+                const overridePrice = card.dataset.overridePrice ? parseFloat(card.dataset.overridePrice) : null;
+                const priceToUse = (overridePrice && !isNaN(overridePrice)) ? overridePrice : selectedPrice;
 
-                card.startNewSession(selectedValue, selectedPrice);
+                card.startNewSession(selectedValue, priceToUse);
             });
 
             pauseBtn.addEventListener('click', () => {
@@ -1260,16 +1363,20 @@
                 const selectedPrice = parseFloat(selectedOption.dataset.price);
                 const baseComment = 'Finalizado';
                 const fullComment = card.transferComment ? `${baseComment}; ${card.transferComment}` : baseComment;
+                const overridePrice = card.dataset.overridePrice ? parseFloat(card.dataset.overridePrice) : null;
+                const priceToSave = (overridePrice && !isNaN(overridePrice)) ? overridePrice : selectedPrice;
+                const overrideForSave = card.dataset.overridePrice ? parseFloat(card.dataset.overridePrice) : null;
                 saveSessionData(
                     card.dataset.consoleType,
                     card.dataset.consoleNumber,
                     card.totalSeconds,
-                    selectedPrice,
+                    priceToSave,
                     card.sessionStartTime,
                     'detener',
-                    fullComment
+                    fullComment,
+                    overrideForSave
                 );
-                addEarnings(selectedPrice);
+                addEarnings(priceToSave);
                 card.resetCard();
             });
             
@@ -1278,16 +1385,20 @@
                 const selectedPrice = parseFloat(selectedOption.dataset.price);
                 const baseComment = 'Se detuvo antes de tiempo';
                 const fullComment = card.transferComment ? `${baseComment}; ${card.transferComment}` : baseComment;
+                const overridePrice = card.dataset.overridePrice ? parseFloat(card.dataset.overridePrice) : null;
+                const priceToSave = (overridePrice && !isNaN(overridePrice)) ? overridePrice : selectedPrice;
+                const overrideForSave = card.dataset.overridePrice ? parseFloat(card.dataset.overridePrice) : null;
                 saveSessionData(
                     card.dataset.consoleType,
                     card.dataset.consoleNumber,
                     card.elapsedSeconds,
-                    selectedPrice,
+                    priceToSave,
                     card.sessionStartTime,
                     'detener',
-                    fullComment
+                    fullComment,
+                    overrideForSave
                 );
-                addEarnings(selectedPrice);
+                addEarnings(priceToSave);
                 card.resetCard();
             });
 
@@ -1301,14 +1412,39 @@
                     const selectedValue = parseInt(selectedOption.value);
                     const selectedPrice = parseFloat(selectedOption.dataset.price);
 
-                    saveSessionData(card.dataset.consoleType, card.dataset.consoleNumber, card.elapsedSeconds, card.currentSessionEarnings, card.sessionStartTime);
+                    const overridePrice = card.dataset.overridePrice ? parseFloat(card.dataset.overridePrice) : null;
+                    const priceToSave = (overridePrice && !isNaN(overridePrice)) ? overridePrice : selectedPrice;
+                    const overrideForSave = card.dataset.overridePrice ? parseFloat(card.dataset.overridePrice) : null;
+                    saveSessionData(card.dataset.consoleType, card.dataset.consoleNumber, card.elapsedSeconds, card.currentSessionEarnings, card.sessionStartTime, undefined, undefined, overrideForSave);
                     addEarnings(card.currentSessionEarnings);
-                    card.startNewSession(selectedValue, selectedPrice);
+                    card.startNewSession(selectedValue, priceToSave);
 
                 } else {
                     alert("Por favor, elige una duración antes de añadir más tiempo.");
                 }
             });
+            
+            const modifyBtn = card.querySelector('.modify-price-btn');
+            if (modifyBtn) {
+                modifyBtn.addEventListener('click', () => {
+                    const currentOverride = card.dataset.overridePrice ? card.dataset.overridePrice : '';
+                    const input = prompt("Ingrese el precio temporal (número) o escriba 'clear' para eliminar:", currentOverride);
+                    if (input === null) return;
+                    const valTrim = input.trim().toLowerCase();
+                    if (valTrim === 'clear' || input.trim() === '') {
+                        delete card.dataset.overridePrice;
+                        const sel = timeSelect.options[timeSelect.selectedIndex];
+                        const selPrice = sel ? sel.dataset.price : '0';
+                        card.querySelector('.price-display').textContent = `C$ ${selPrice}`;
+                        alert('Override eliminado');
+                        return;
+                    }
+                    const parsed = parseFloat(input);
+                    if (isNaN(parsed) || parsed < 0) { alert('Precio inválido'); return; }
+                    card.dataset.overridePrice = parsed;
+                    card.querySelector('.price-display').textContent = `C$ ${parsed} (override)`;
+                });
+            }
             
             changeConsoleBtn.addEventListener('click', () => {
                 if (transferMode) return;
@@ -1370,7 +1506,8 @@
             const currentUser = window.currentUser || null;
             let action = arguments.length > 5 ? arguments[5] : undefined;
             let commentArg = arguments.length > 6 ? arguments[6] : undefined;
-            let fromConsole = arguments.length > 7 ? arguments[7] : undefined;
+            let overridePriceArg = arguments.length > 7 ? arguments[7] : undefined;
+            let fromConsole = arguments.length > 8 ? arguments[8] : undefined;
 
             let comment = commentArg || '';
             if (!comment) {
@@ -1389,6 +1526,16 @@
                 fromConsole: fromConsole || undefined,
                 comment: comment || ''
             };
+            // Si se pasó un overridePrice explícito, incluirlo para audit
+            if (typeof overridePriceArg !== 'undefined' && overridePriceArg !== null) {
+                const parsed = Number(overridePriceArg);
+                if (!isNaN(parsed)) {
+                    newSession.overridePrice = parsed;
+                    newSession.override = true;
+                }
+            }
+            // Adjuntar empleado (si está en el cliente)
+            if (currentUser && currentUser.username) newSession.employee = currentUser.username;
         function getFechaNicaragua() {
             const ahora = new Date();
             const nica = ahora.toLocaleString('sv-SE', { timeZone: 'America/Managua' });
@@ -1469,7 +1616,18 @@
     document.addEventListener('DOMContentLoaded', async () => {
         await fetchConsoles();
         await fetchPrices();
+        await fetchProducts();
         loadAndRenderConsoles();
+        renderProductsSidebar();
+        const sellProductBtn = document.getElementById('sellProductBtn');
+        const cancelProductBtn = document.getElementById('cancelProductBtn');
+        const productSelect = document.getElementById('productSelect');
+        const productQuantity = document.getElementById('productQuantity');
+        if (sellProductBtn) sellProductBtn.addEventListener('click', sellSelectedProduct);
+        if (cancelProductBtn && productSelect) cancelProductBtn.addEventListener('click', () => {
+            productSelect.value = '';
+            if (productQuantity) productQuantity.value = '1';
+        });
     try { loadEarnings().catch(() => {}); } catch {}
     });
     </script>

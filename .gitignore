@@ -5,3 +5,11 @@
 backend/key.b64
 backend/backend/zonagamer-*.json
 
+
+node_modules/
+.env
+.env.*
+.DS_Store
+npm-debug.log
+yarn-error.log
+

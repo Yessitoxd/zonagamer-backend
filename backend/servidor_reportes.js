@@ -195,7 +195,10 @@ const sessionSchema = new mongoose.Schema({
   durationSeconds: Number,
   action: String,
   fromConsole: String,
-  comment: String
+  comment: String,
+  // Optional override price info when owner sets a temporary price for a session
+  overridePrice: { type: Number, default: null },
+  override: { type: Boolean, default: false }
 });
 const Session = mongoose.model('Session', sessionSchema);
 // Modelo para ganancias diarias por usuario (username + dateISO)
@@ -224,6 +227,33 @@ app.get('/employees', (req, res) => {
     });
 });
 
+// Añadir empleado
+app.post('/employees', async (req, res) => {
+  try {
+    const { username, password, role, dailyPay } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Faltan datos requeridos.' });
+    const nuevo = new Employee({ username, password, role, dailyPay });
+    await nuevo.save();
+    res.status(201).json({ message: 'Empleado añadido correctamente.' });
+  } catch (err) {
+    console.error('Error al añadir empleado:', err);
+    res.status(500).json({ error: 'Error al añadir empleado.' });
+  }
+});
+
+// Eliminar empleado
+app.delete('/employees/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const deleted = await Employee.findOneAndDelete({ username });
+    if (!deleted) return res.status(404).json({ message: 'Empleado no encontrado.' });
+    res.json({ message: 'Empleado eliminado correctamente.' });
+  } catch (err) {
+    console.error('Error al eliminar empleado:', err);
+    res.status(500).json({ error: 'Error al eliminar empleado.' });
+  }
+});
+
 app.put('/employees', (req, res) => {
   // Actualizar todos los empleados (sobrescribe)
   Employee.deleteMany({})
@@ -237,9 +267,29 @@ app.put('/employees', (req, res) => {
 const priceSchema = new mongoose.Schema({
   console: { type: String, required: true },
   duration: { type: Number },
-  price: { type: Number, required: true }
+  price: { type: Number, required: true },
+  label: { type: String, default: '' }
 });
 const Price = mongoose.model('Price', priceSchema);
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: { type: String, required: true },
+  price: { type: Number, required: true },
+  imageUrl: { type: String, default: '' },
+  category: { type: String, default: 'bebida' }
+});
+const Product = mongoose.model('Product', productSchema);
+const productSaleSchema = new mongoose.Schema({
+  employee: { type: String, default: '' },
+  productId: { type: String, default: '' },
+  productName: { type: String, required: true },
+  description: { type: String, required: true },
+  quantity: { type: Number, default: 1 },
+  unitPrice: { type: Number, default: 0 },
+  price: { type: Number, required: true },
+  createdAt: { type: String, required: true }
+});
+const ProductSale = mongoose.model('ProductSale', productSaleSchema);
 const consoleSchema = new mongoose.Schema({
   type: { type: String, required: true },
   number: { type: Number, required: true, unique: true },
@@ -301,8 +351,8 @@ app.post('/generate-report-sa', async (req, res) => {
     return res.status(500).json({ error: 'Server-side local exporter not available' });
   }
   try {
-    const { rows, sheetName, summary } = req.body || {};
-    const result = await localReports.exportReportFromTemplate(rows, { sheetName, summary });
+    const { rows, sheetName, summary, productRows } = req.body || {};
+    const result = await localReports.exportReportFromTemplate(rows, { sheetName, summary, productRows });
     let buf;
     let filename = 'reporte.xlsx';
     if (result && result.buffer) {
@@ -397,6 +447,33 @@ app.get('/admins', (req, res) => {
     });
 });
 
+// Añadir admin
+app.post('/admins', async (req, res) => {
+  try {
+    const { username, password, role } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Faltan datos requeridos.' });
+    const nuevo = new Admin({ username, password, role });
+    await nuevo.save();
+    res.status(201).json({ message: 'Admin añadido correctamente.' });
+  } catch (err) {
+    console.error('Error al añadir admin:', err);
+    res.status(500).json({ error: 'Error al añadir admin.' });
+  }
+});
+
+// Eliminar admin
+app.delete('/admins/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const deleted = await Admin.findOneAndDelete({ username });
+    if (!deleted) return res.status(404).json({ message: 'Admin no encontrado.' });
+    res.json({ message: 'Admin eliminado correctamente.' });
+  } catch (err) {
+    console.error('Error al eliminar admin:', err);
+    res.status(500).json({ error: 'Error al eliminar admin.' });
+  }
+});
+
 app.get('/consoles', (req, res) => {
   Console.find({})
     .then(consoles => res.json(consoles))
@@ -408,6 +485,7 @@ app.get('/consoles', (req, res) => {
 
 // Obtener sesiones filtradas por consola y fecha (query params)
 // Ej: /sessions?consoleType=ps5&consoleNumber=1&date=2025-10-16
+// Monitoreo con retraso de 5 minutos: /monitoreo?consoleType=ps5&consoleNumber=1
 app.get('/sessions', async (req, res) => {
   try {
     const { consoleType, consoleNumber, date, start, end } = req.query;
@@ -416,7 +494,6 @@ app.get('/sessions', async (req, res) => {
     if (consoleNumber) andFilter.push({ consoleNumber: Number(consoleNumber) });
 
     if (start && end) {
-      // Build date strings [YYYY-MM-DD] inclusive using UTC to avoid TZ shifts
       function toUTCDateParts(s) {
         const [y, m, d] = s.split('-').map(Number);
         return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
@@ -427,10 +504,9 @@ app.get('/sessions', async (req, res) => {
       for (let d = new Date(sDate); d.getTime() <= eDate.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
         const yy = d.getUTCFullYear();
         const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const dd = String(d.getUTCDate());
         dates.push(`${yy}-${mm}-${dd}`);
       }
-      // Strict prefix match for speed/accuracy
       const orClauses = dates.map(dt => ({ startDate: { $regex: `^${dt}` } }));
       if (orClauses.length) andFilter.push({ $or: orClauses });
     } else if (date) {
@@ -443,6 +519,27 @@ app.get('/sessions', async (req, res) => {
   } catch (err) {
     console.error('Error al leer sesiones filtradas:', err);
     res.status(500).json({ error: 'Error al leer sesiones filtradas' });
+  }
+});
+
+// Endpoint de monitoreo con retraso de 5 minutos
+app.get('/monitoreo', async (req, res) => {
+  try {
+    const { consoleType, consoleNumber } = req.query;
+    const andFilter = [];
+    if (consoleType) andFilter.push({ consoleType });
+    if (consoleNumber) andFilter.push({ consoleNumber: Number(consoleNumber) });
+    // Solo sesiones de los últimos 10 minutos, pero excluyendo los últimos 5 minutos
+    const now = new Date();
+    const tenMinAgo = new Date(now.getTime() - 10 * 60 * 1000);
+    const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    andFilter.push({ startDate: { $gte: tenMinAgo.toISOString(), $lte: fiveMinAgo.toISOString() } });
+    const filter = andFilter.length ? { $and: andFilter } : {};
+    const sessions = await Session.find(filter).sort({ startDate: -1 });
+    res.json(sessions);
+  } catch (err) {
+    console.error('Error en monitoreo:', err);
+    res.status(500).json({ error: 'Error en monitoreo' });
   }
 });
 // Endpoint para añadir una consola (POST)
@@ -480,11 +577,18 @@ app.get('/prices', (req, res) => {
 // Crear un nuevo precio
 app.post('/prices', async (req, res) => {
   try {
-    const { console, duration, price } = req.body;
-    if (!console || !duration || !price) {
+    const { console, duration, price, label } = req.body;
+    const parsedDuration = Number(duration);
+    const parsedPrice = Number(price);
+    if (!console || isNaN(parsedDuration) || parsedDuration < 1 || isNaN(parsedPrice) || parsedPrice < 1) {
       return res.status(400).json({ message: 'Faltan datos requeridos.' });
     }
-    const nuevoPrecio = new Price({ console, duration, price });
+    const nuevoPrecio = new Price({
+      console,
+      duration: parsedDuration,
+      price: parsedPrice,
+      label: (label || '').toString().trim()
+    });
     await nuevoPrecio.save();
     res.status(201).json({ message: 'Precio aÃ±adido correctamente.' });
   } catch (err) {
@@ -496,16 +600,23 @@ app.post('/prices', async (req, res) => {
 // Editar precios (PUT, recibe array de precios a actualizar)
 app.put('/prices', async (req, res) => {
   try {
+    // Solo Yesseira puede editar precios libremente
+    if (!session || session.username !== 'Yesseira' || (session.role !== 'dueña' && session.role !== 'admin')) {
+      return res.status(403).json({ message: 'No autorizado. Solo Yesseira puede editar precios.' });
+    }
     const precios = req.body;
     if (!Array.isArray(precios) || precios.length === 0) {
       return res.status(400).json({ message: 'No se enviaron precios para actualizar.' });
     }
     for (const precio of precios) {
-      if (!precio._id || !precio.console || !precio.duration || !precio.price) continue;
+      const parsedDuration = Number(precio.duration);
+      const parsedPrice = Number(precio.price);
+      if (!precio._id || !precio.console || isNaN(parsedDuration) || parsedDuration < 1 || isNaN(parsedPrice) || parsedPrice < 1) continue;
       await Price.findByIdAndUpdate(precio._id, {
         console: precio.console,
-        duration: precio.duration,
-        price: precio.price
+        duration: parsedDuration,
+        price: parsedPrice,
+        label: (precio.label || '').toString().trim()
       });
     }
     res.json({ message: 'Precios actualizados correctamente.' });
@@ -530,33 +641,189 @@ app.delete('/prices/:id', async (req, res) => {
   }
 });
 
+// Productos de bebidas/snacks
+app.get('/products', async (req, res) => {
+  try {
+    const products = await Product.find({}).sort({ name: 1 });
+    res.json(products);
+  } catch (err) {
+    console.error('Error al leer productos:', err);
+    res.status(500).json({ error: 'Error al leer productos' });
+  }
+});
+
+app.post('/products', async (req, res) => {
+  try {
+    const { name, description, price, imageUrl, category } = req.body || {};
+    const parsedPrice = Number(price);
+    if (!name || !description || isNaN(parsedPrice) || parsedPrice < 0) {
+      return res.status(400).json({ error: 'Datos inválidos para producto' });
+    }
+    const created = await Product.create({
+      name: String(name).trim(),
+      description: String(description).trim(),
+      price: parsedPrice,
+      imageUrl: String(imageUrl || '').trim(),
+      category: String(category || 'bebida').trim() || 'bebida'
+    });
+    res.status(201).json({ ok: true, product: created });
+  } catch (err) {
+    console.error('Error al crear producto:', err);
+    res.status(500).json({ error: 'Error al crear producto' });
+  }
+});
+
+app.put('/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, price, imageUrl, category } = req.body || {};
+    const parsedPrice = Number(price);
+    if (!name || !description || isNaN(parsedPrice) || parsedPrice < 0) {
+      return res.status(400).json({ error: 'Datos inválidos para producto' });
+    }
+    const updated = await Product.findByIdAndUpdate(
+      id,
+      {
+        name: String(name).trim(),
+        description: String(description).trim(),
+        price: parsedPrice,
+        imageUrl: String(imageUrl || '').trim(),
+        category: String(category || 'bebida').trim() || 'bebida'
+      },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ error: 'Producto no encontrado' });
+    res.json({ ok: true, product: updated });
+  } catch (err) {
+    console.error('Error al actualizar producto:', err);
+    res.status(500).json({ error: 'Error al actualizar producto' });
+  }
+});
+
+app.delete('/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Product.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ error: 'Producto no encontrado' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error al eliminar producto:', err);
+    res.status(500).json({ error: 'Error al eliminar producto' });
+  }
+});
+
 // Endpoint para recibir y guardar acciones nuevas (sesiones)
 app.post('/accion', (req, res) => {
-  const nuevaAccion = req.body;
-  // Adjuntar empleado desde la sesiÃ³n del backend si existe
+  const nuevaAccion = req.body || {};
+  // Adjuntar empleado desde la sesión del backend si existe
   if (session && session.username && session.role === 'trabajador' && !nuevaAccion.employee) {
     nuevaAccion.employee = session.username;
   }
-  if (!nuevaAccion || !nuevaAccion.startDate) {
-    return res.status(400).json({ error: 'AcciÃ³n invÃ¡lida' });
+  // Si el frontend incluyó overridePrice, marcar override=true
+  if (typeof nuevaAccion.overridePrice !== 'undefined' && nuevaAccion.overridePrice !== null) {
+    const parsedOverride = Number(nuevaAccion.overridePrice);
+    if (!isNaN(parsedOverride)) {
+      nuevaAccion.overridePrice = parsedOverride;
+      nuevaAccion.override = true;
+    } else {
+      nuevaAccion.overridePrice = null;
+      nuevaAccion.override = false;
+    }
   }
-  const mongoSession = new Session(nuevaAccion);
-  mongoSession.save()
-    .then(() => res.json({ ok: true, msg: 'AcciÃ³n guardada en MongoDB' }))
-    .catch(err => {
-      console.error('Error al guardar sesiÃ³n en MongoDB:', err);
-      res.status(500).json({ error: 'Error al guardar sesiÃ³n en MongoDB' });
-    });
+  if (!nuevaAccion || !nuevaAccion.startDate) {
+    return res.status(400).json({ error: 'Acción inválida' });
+  }
+
+  // Si mongoose está conectado, guardar en MongoDB; si no, usar fallback a datos.json (útil para pruebas locales)
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    const mongoSession = new Session(nuevaAccion);
+    mongoSession.save()
+      .then(() => res.json({ ok: true, msg: 'Acción guardada en MongoDB' }))
+      .catch(err => {
+        console.error('Error al guardar sesión en MongoDB:', err);
+        res.status(500).json({ error: 'Error al guardar sesión en MongoDB' });
+      });
+  } else {
+    try {
+      const datos = leerDatos();
+      if (!Array.isArray(datos.sessions)) datos.sessions = [];
+      datos.sessions.push(nuevaAccion);
+      guardarDatos(datos);
+      return res.json({ ok: true, msg: 'Acción guardada en datos locales (fallback)' });
+    } catch (e) {
+      console.error('Error al guardar sesión en datos locales:', e);
+      return res.status(500).json({ error: 'Error guardando sesión en fallback local' });
+    }
+  }
 });
 
 // Endpoint para obtener todas las acciones en JSON
-app.get('/acciones', (req, res) => {
-  Session.find({})
-    .then(sessions => res.json(sessions))
-    .catch(err => {
-      console.error('Error al leer sesiones desde MongoDB:', err);
-      res.status(500).json({ error: 'Error al leer sesiones desde MongoDB' });
+app.get('/acciones', async (req, res) => {
+  try {
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const sessions = await Session.find({});
+      return res.json(sessions);
+    }
+    // Fallback local
+    const datos = leerDatos();
+    return res.json(datos.sessions || []);
+  } catch (err) {
+    console.error('Error al leer sesiones:', err);
+    res.status(500).json({ error: 'Error al leer sesiones' });
+  }
+});
+
+// Ventas de productos (bebidas, snacks, etc.)
+app.post('/product-sales', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const quantity = Number(body.quantity || 1);
+    const unitPrice = Number(typeof body.unitPrice !== 'undefined' ? body.unitPrice : body.price);
+    if (!body.productName || !body.description || isNaN(quantity) || quantity < 1 || !Number.isFinite(quantity) || isNaN(unitPrice) || unitPrice < 0) {
+      return res.status(400).json({ error: 'Venta inválida' });
+    }
+    const finalQuantity = Math.floor(quantity);
+    const totalPrice = Number((unitPrice * finalQuantity).toFixed(2));
+    const baseDescription = String(body.description).trim();
+    const finalDescription = finalQuantity > 1 ? `${finalQuantity} x ${baseDescription}` : baseDescription;
+    const employeeFromSession = session && session.username ? session.username : '';
+    const createdAt = body.createdAt || new Date().toISOString();
+    const sale = await ProductSale.create({
+      employee: body.employee || employeeFromSession || '',
+      productId: body.productId || '',
+      productName: String(body.productName).trim(),
+      description: finalDescription,
+      quantity: finalQuantity,
+      unitPrice: Number(unitPrice.toFixed(2)),
+      price: totalPrice,
+      createdAt: String(createdAt)
     });
+    res.status(201).json({ ok: true, sale });
+  } catch (err) {
+    console.error('Error al guardar venta de producto:', err);
+    res.status(500).json({ error: 'Error al guardar venta de producto' });
+  }
+});
+
+app.get('/product-sales', async (req, res) => {
+  try {
+    const { start, end } = req.query || {};
+    const filter = {};
+    if (start || end) {
+      const from = start ? new Date(`${start}T00:00:00.000Z`) : null;
+      const to = end ? new Date(`${end}T23:59:59.999Z`) : null;
+      if (from || to) {
+        filter.createdAt = {};
+        if (from && !isNaN(from.getTime())) filter.createdAt.$gte = from.toISOString();
+        if (to && !isNaN(to.getTime())) filter.createdAt.$lte = to.toISOString();
+      }
+    }
+    const sales = await ProductSale.find(filter).sort({ createdAt: -1 });
+    res.json(sales);
+  } catch (err) {
+    console.error('Error al leer ventas de producto:', err);
+    res.status(500).json({ error: 'Error al leer ventas de producto' });
+  }
 });
 
 // Endpoints para persistir "Dinero obtenido" por empleado y por dÃ­a

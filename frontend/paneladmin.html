@@ -384,6 +384,9 @@
                         <button class="sidebar-btn" onclick="showSession('descargar')" id="btn-descargar">Descargar<br>reporte</button>
                         <button class="sidebar-btn" onclick="showSession('consolas')" id="btn-consolas">Añadir<br>consolas</button>
                         <button class="sidebar-btn" onclick="showSession('precios')" id="btn-precios">Añadir<br>precios</button>
+                        <button class="sidebar-btn" onclick="showSession('productos')" id="btn-productos">Productos</button>
+                        <button class="sidebar-btn" onclick="showSession('monitoreo')" id="btn-monitoreo">Monitoreo</button>
+                        <button class="sidebar-btn" onclick="showSession('usuarios')" id="btn-usuarios">Usuarios</button>
                     </div>
                 </div>
                 <!-- keep logout visually within the same sidebar but outside the scrollable button region -->
@@ -452,6 +455,7 @@
                 </div>
                 <div id="mainbox-session-precios" class="mainbox-session" style="display:none;">
                     <h2>Añadir Precios</h2>
+                    <div style="color:#fff;opacity:0.9;margin-bottom:10px;">Ahora puedes agregar una etiqueta de promoción, por ejemplo: <strong>Promo 2h + 1h gratis</strong>.</div>
                     <div style="display:flex;gap:32px;flex-wrap:wrap;justify-content:center;align-items:flex-start;">
                         <!-- Formulario PS5 -->
                         <div style="flex:1;min-width:260px;max-width:340px;">
@@ -464,6 +468,10 @@
                                 <div class="input-group">
                                     <label for="ps5-price">Precio (C$)</label>
                                     <input type="number" id="ps5-price" min="1" required class="neon-input" placeholder="Ej: 50">
+                                </div>
+                                <div class="input-group">
+                                    <label for="ps5-label">Descripción promo (opcional)</label>
+                                    <input type="text" id="ps5-label" class="neon-input" placeholder="Ej: Promo 2h + 1h gratis">
                                 </div>
                                 <button type="submit" class="neon-btn">Añadir precio</button>
                                 <p id="ps5PriceMsg" class="error-message" style="margin-top:10px;"></p>
@@ -482,6 +490,10 @@
                                     <label for="switch-price">Precio (C$)</label>
                                     <input type="number" id="switch-price" min="1" required class="neon-input" placeholder="Ej: 50">
                                 </div>
+                                <div class="input-group">
+                                    <label for="switch-label">Descripción promo (opcional)</label>
+                                    <input type="text" id="switch-label" class="neon-input" placeholder="Ej: Promo 2h + 1h gratis">
+                                </div>
                                 <button type="submit" class="neon-btn">Añadir precio</button>
                                 <p id="switchPriceMsg" class="error-message" style="margin-top:10px;"></p>
                             </form>
@@ -489,7 +501,96 @@
                         </div>
                     </div>
                 </div>
+                <div id="mainbox-session-productos" class="mainbox-session" style="display:none;">
+                    <h2>Productos (Bebidas / Snacks)</h2>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+                        <form id="addProductForm" style="background:rgba(44,18,80,0.85);border-radius:14px;padding:18px;box-shadow:0 0 8px #3ef2e6;min-width:280px;max-width:360px;">
+                            <div class="input-group">
+                                <label for="productName">Nombre</label>
+                                <input type="text" id="productName" class="neon-input" placeholder="Ej: Coca Cola 500ml" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="productDescription">Descripción</label>
+                                <input type="text" id="productDescription" class="neon-input" placeholder="Ej: Bebida fría" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="productPrice">Precio (C$)</label>
+                                <input type="number" id="productPrice" min="0" class="neon-input" placeholder="Ej: 35" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="productImage">URL de imagen (opcional)</label>
+                                <input type="text" id="productImage" class="neon-input" placeholder="https://...">
+                            </div>
+                            <button type="submit" class="neon-btn">Añadir producto</button>
+                            <p id="addProductMsg" class="error-message" style="margin-top:10px;"></p>
+                        </form>
+                        <div style="flex:1;min-width:300px;">
+                            <div id="productsList" style="background:rgba(0,0,0,0.06);padding:10px;border-radius:8px;max-height:420px;overflow:auto;color:#fff;">Cargando productos...</div>
+                        </div>
+                    </div>
+                </div>
                 <!--  -->
+
+                <!-- Monitoreo -->
+                <div id="mainbox-session-monitoreo" class="mainbox-session" style="display:none;">
+                    <h2>Monitoreo</h2>
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+                        <label style="color:#fff;min-width:80px;">Filtrar consola:</label>
+                        <select id="monitoreoConsoleType" style="padding:6px;border-radius:6px;background:#2a114d;color:#fff;border:1px solid #444;">
+                            <option value="">Todas</option>
+                            <option value="ps5">PS5</option>
+                            <option value="switch">Switch</option>
+                        </select>
+                        <input id="monitoreoConsoleNumber" type="number" min="1" placeholder="Número (opcional)" style="padding:6px;border-radius:6px;background:#2a114d;color:#fff;border:1px solid #444;width:120px;" />
+                        <button id="monitoreoRefreshBtn" class="neon-btn" style="padding:6px 12px;">Refrescar</button>
+                        <span id="monitoreoStatus" style="color:#fff;margin-left:8px;opacity:0.9;"></span>
+                    </div>
+                    <div id="monitoreoContent" style="color:#fff;max-height:360px;overflow:auto;padding:8px;background:rgba(0,0,0,0.06);border-radius:8px;">Pulsa Refrescar para cargar datos de monitoreo.</div>
+                </div>
+
+                <!-- Usuarios -->
+                <div id="mainbox-session-usuarios" class="mainbox-session" style="display:none;">
+                    <h2>Gestión de Usuarios</h2>
+                    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+                        <div style="min-width:260px;max-width:420px;background:rgba(44,18,80,0.85);padding:12px;border-radius:10px;">
+                            <h3 style="color:#81fde9;">Añadir Admin</h3>
+                            <div class="input-group">
+                                <label for="newAdminUser">Usuario</label>
+                                <input id="newAdminUser" type="text" class="neon-input" />
+                            </div>
+                            <div class="input-group">
+                                <label for="newAdminPass">Contraseña</label>
+                                <input id="newAdminPass" type="password" class="neon-input" />
+                            </div>
+                            <button id="addAdminBtn" class="neon-btn">Añadir Admin</button>
+                            <p id="addAdminMsg" style="color:#fff;opacity:0.9;margin-top:8px;"></p>
+                        </div>
+                        <div style="min-width:260px;max-width:420px;background:rgba(44,18,80,0.85);padding:12px;border-radius:10px;">
+                            <h3 style="color:#81fde9;">Añadir Empleado</h3>
+                            <div class="input-group">
+                                <label for="newEmpUser">Usuario</label>
+                                <input id="newEmpUser" type="text" class="neon-input" />
+                            </div>
+                            <div class="input-group">
+                                <label for="newEmpPass">Contraseña</label>
+                                <input id="newEmpPass" type="password" class="neon-input" />
+                            </div>
+                            <div class="input-group">
+                                <label for="newEmpRole">Rol</label>
+                                <select id="newEmpRole" class="neon-select"><option value="trabajador">Trabajador</option><option value="dueña">Dueña</option></select>
+                            </div>
+                            <button id="addEmpBtn" class="neon-btn">Añadir Empleado</button>
+                            <p id="addEmpMsg" style="color:#fff;opacity:0.9;margin-top:8px;"></p>
+                        </div>
+                    </div>
+                    <div style="margin-top:16px;color:#fff;">
+                        <div style="display:flex;gap:16px;align-items:center;margin-bottom:8px;">
+                            <button class="neon-btn" onclick="renderAdmins()">Ver Admins</button>
+                            <button class="neon-btn" onclick="renderEmpleados()">Ver Empleados</button>
+                        </div>
+                        <div id="usuarios-content" style="background:rgba(0,0,0,0.06);padding:10px;border-radius:8px;max-height:300px;overflow:auto;"></div>
+                    </div>
+                </div>
 
 <!--  -->
     <script>
@@ -813,10 +914,12 @@
             }
         });
         function showSession(session) {
-            const sessions = ['reporte', 'descargar', 'consolas', 'precios'];
+            const sessions = ['reporte', 'descargar', 'consolas', 'precios', 'productos', 'monitoreo', 'usuarios'];
             sessions.forEach(s => {
-                document.getElementById('mainbox-session-' + s).style.display = (s === session) ? 'block' : 'none';
-                document.getElementById('btn-' + s).classList.toggle('active', s === session);
+                const box = document.getElementById('mainbox-session-' + s);
+                const btn = document.getElementById('btn-' + s);
+                if (box) box.style.display = (s === session) ? 'block' : 'none';
+                if (btn) btn.classList.toggle('active', s === session);
             });
         }
         let _previousMainboxHTML = null;
@@ -1035,23 +1138,28 @@
                             return;
                         }
                         try {
-                            const res = await fetch('https://zonagamer-backend.onrender.com/admins');
-                            if (!res.ok) {
-                                errorMsg.textContent = 'No se pudo conectar al backend.';
-                                return;
-                            }
-                            const admins = await res.json();
-                            if (!Array.isArray(admins)) {
-                                errorMsg.textContent = 'Respuesta inesperada del servidor.';
-                                return;
-                            }
-                            const admin = admins.find(a => a.username === username && a.password === password);
-                            if (admin) {
-                                document.getElementById('adminLoginContainer').style.display = 'none';
-                                document.getElementById('adminPanelSesiones').style.display = 'block';
-                            } else {
-                                errorMsg.textContent = 'Usuario o contraseña incorrectos.';
-                            }
+                                    // Intentar iniciar sesión en el backend (esto guarda la sesión en memoria del servidor)
+                                    const loginRes = await fetch('https://zonagamer-backend.onrender.com/session', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ username, password, role: 'admin' })
+                                    });
+                                    if (!loginRes.ok) {
+                                        const data = await loginRes.json().catch(() => ({}));
+                                        errorMsg.textContent = data.error || 'Credenciales inválidas o error de servidor.';
+                                        return;
+                                    }
+                                    const loginJson = await loginRes.json();
+                                    if (loginJson && loginJson.ok) {
+                                        document.getElementById('adminLoginContainer').style.display = 'none';
+                                        document.getElementById('adminPanelSesiones').style.display = 'block';
+                                        // refrescar vistas relevantes
+                                        renderConsolesList();
+                                        renderMiniConsolesList();
+                                        renderPricesList();
+                                    } else {
+                                        errorMsg.textContent = 'Usuario o contraseña incorrectos.';
+                                    }
                         } catch (err) {
                             errorMsg.textContent = 'Error de conexión con el servidor.';
                         }
@@ -1067,6 +1175,7 @@
     <script>
     (function(){
         function formatMinutes(mins) {
+            mins = Number(mins) || 0;
             if (mins < 60) return mins + ' minutos';
             const h = Math.floor(mins / 60);
             const m = mins % 60;
@@ -1077,12 +1186,13 @@
 
         function renderPriceTable(prices, consoleType) {
             if (!prices || prices.length === 0) return '<div style="color:#fff;opacity:0.7;">No hay precios registrados.</div>';
-            prices.sort((a, b) => a.duration - b.duration);
+            prices.sort((a, b) => (Number(a.duration) || 0) - (Number(b.duration) || 0));
                 return `<table style="width:100%;color:#fff;background:rgba(44,18,80,0.92);border-radius:10px;overflow:hidden;margin-bottom:10px;">
-                    <tr style="background:#2a114d;color:#81fde9;font-weight:700;"><th>Tiempo</th><th>Precio (C$)</th><th>Acciones</th></tr>
+                    <tr style="background:#2a114d;color:#81fde9;font-weight:700;"><th>Tiempo</th><th>Descripción</th><th>Precio (C$)</th><th>Acciones</th></tr>
                     ${prices.map(p => `
                         <tr>
                             <td>${formatMinutes(p.duration)}</td>
+                            <td>${(p.label || '').toString().trim() || '-'}</td>
                             <td>${p.price}</td>
                             <td>
                                 <div style="display:flex;gap:8px;justify-content:center;align-items:center;">
@@ -1120,6 +1230,7 @@
                     if (msg) msg.textContent = '';
                     const minutes = parseInt(document.getElementById('ps5-minutes').value, 10);
                     const price = parseInt(document.getElementById('ps5-price').value, 10);
+                    const label = (document.getElementById('ps5-label').value || '').trim();
                     if (!minutes || !price || minutes < 1 || price < 1) {
                         if (msg) msg.textContent = 'Completa todos los campos correctamente.';
                         return;
@@ -1128,7 +1239,7 @@
                         const res = await fetch('https://zonagamer-backend.onrender.com/prices', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ console: 'ps5', duration: minutes, price })
+                            body: JSON.stringify({ console: 'ps5', duration: minutes, price, label })
                         });
                         if (res.ok) {
                             if (msg) {
@@ -1156,6 +1267,7 @@
                     if (msg) msg.textContent = '';
                     const minutes = parseInt(document.getElementById('switch-minutes').value, 10);
                     const price = parseInt(document.getElementById('switch-price').value, 10);
+                    const label = (document.getElementById('switch-label').value || '').trim();
                     if (!minutes || !price || minutes < 1 || price < 1) {
                         if (msg) msg.textContent = 'Completa todos los campos correctamente.';
                         return;
@@ -1164,7 +1276,7 @@
                         const res = await fetch('https://zonagamer-backend.onrender.com/prices', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ console: 'switch', duration: minutes, price })
+                            body: JSON.stringify({ console: 'switch', duration: minutes, price, label })
                         });
                         if (res.ok) {
                             if (msg) {
@@ -1195,6 +1307,7 @@
         window.editPrice = function(id, consoleType) {
             const minutes = prompt('Nuevo tiempo en minutos:');
             const price = prompt('Nuevo precio en C$');
+            const label = prompt('Descripción promo (opcional):', '');
             if (!minutes || !price || isNaN(minutes) || isNaN(price) || minutes < 1 || price < 1) {
                 if (typeof showToast === 'function') showToast('Datos inválidos.', 6000);
                 return;
@@ -1202,7 +1315,7 @@
             fetch('https://zonagamer-backend.onrender.com/prices', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify([{ _id: id, console: consoleType, duration: parseInt(minutes,10), price: parseInt(price,10) }])
+                body: JSON.stringify([{ _id: id, console: consoleType, duration: parseInt(minutes,10), price: parseInt(price,10), label: (label || '').trim() }])
             })
             .then(res => res.json())
             .then(() => {
@@ -1251,6 +1364,14 @@
                 comentario: s.comment || s.notes || ''
             }));
 
+            const productRes = await fetch(`https://zonagamer-backend.onrender.com/product-sales?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+            const productSales = await productRes.json().catch(() => []);
+            const productRows = Array.isArray(productSales) ? productSales.map(p => ({
+                trabajador: p.employee || '',
+                descripcion: p.description || p.productName || '',
+                precio: Number(p.price || 0)
+            })) : [];
+
             const totalUses = sessions.length;
             const totalMoney = sessions.reduce((a,b) => a + (Number(b.totalPrice||b.total||0)||0), 0);
             const totalTimeMinutes = sessions.reduce((acc, s) => acc + (Math.round((Number(s.durationSeconds)||0)/60)), 0);
@@ -1258,7 +1379,8 @@
 
             const payload = {
                 summary: start === end ? { dayReport: start, totalMoney } : { start, end, totalMoney },
-                rows: rows
+                rows: rows,
+                productRows
             };
 
             status.textContent = 'Generando archivo en servidor...';
@@ -1318,6 +1440,233 @@
             status.textContent = 'Error: ' + (err.message || err);
         }
     });
+    </script>
+    <script>
+    // Monitoreo and Usuarios interactive JS
+    async function renderMonitoreo() {
+        const statusEl = document.getElementById('monitoreoStatus');
+        const content = document.getElementById('monitoreoContent');
+        if (statusEl) statusEl.textContent = 'Cargando...';
+        if (content) content.innerHTML = 'Cargando...';
+        const type = document.getElementById('monitoreoConsoleType')?.value || '';
+        const number = document.getElementById('monitoreoConsoleNumber')?.value || '';
+        try {
+            let url = 'https://zonagamer-backend.onrender.com/monitoreo';
+            const params = [];
+            if (type) params.push('consoleType=' + encodeURIComponent(type));
+            if (number) params.push('consoleNumber=' + encodeURIComponent(number));
+            if (params.length) url += '?' + params.join('&');
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            if (!Array.isArray(data) || data.length === 0) {
+                // Fallback: show últimas sesiones si no hay datos de monitoreo
+                const r2 = await fetch('https://zonagamer-backend.onrender.com/acciones');
+                const all = await r2.json().catch(()=>[]);
+                const last = Array.isArray(all) ? all.slice(-10).reverse() : [];
+                if (!last.length) {
+                    if (content) content.textContent = 'No hay datos recientes para mostrar.';
+                    if (statusEl) statusEl.textContent = '';
+                    return;
+                }
+                if (content) {
+                    content.innerHTML = '<div style="opacity:0.85;margin-bottom:8px;">Mostrando últimas sesiones (fallback)</div>' + last.map(s => {
+                        return `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.04);">Consola: ${s.consoleType||s.type||'-'} #${s.consoleNumber||s.number||'-'} — Empleado: ${s.employee||s.username||'-'} — Inicio: ${s.startDate||'-'} — Precio: C$${s.totalPrice||s.total||0}</div>`;
+                    }).join('');
+                }
+                if (statusEl) statusEl.textContent = '';
+                return;
+            }
+            // Mostrar datos de monitoreo
+            if (content) {
+                content.innerHTML = data.map(s => `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.04);">Consola: ${s.consoleType||s.type||'-'} #${s.consoleNumber||s.number||'-'} — Empleado: ${s.employee||s.username||'-'} — Inicio: ${s.startDate||'-'} — Fin: ${s.endDate||'-'} — Precio: C$${s.totalPrice||s.total||0}</div>`).join('');
+            }
+            if (statusEl) statusEl.textContent = '';
+        } catch (e) {
+            if (content) content.textContent = 'Error cargando monitoreo.';
+            if (statusEl) statusEl.textContent = '';
+            console.error('renderMonitoreo error', e);
+        }
+    }
+    document.getElementById('monitoreoRefreshBtn')?.addEventListener('click', renderMonitoreo);
+
+    // Auto refresh every 60s while Monitoreo panel visible
+    let monitoreoInterval = null;
+    document.getElementById('btn-monitoreo')?.addEventListener('click', () => {
+        renderMonitoreo();
+        if (monitoreoInterval) clearInterval(monitoreoInterval);
+        monitoreoInterval = setInterval(renderMonitoreo, 60000);
+    });
+
+    async function renderProductsList() {
+        const cont = document.getElementById('productsList');
+        if (!cont) return;
+        cont.textContent = 'Cargando productos...';
+        try {
+            const res = await fetch('https://zonagamer-backend.onrender.com/products');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const products = await res.json();
+            if (!Array.isArray(products) || products.length === 0) {
+                cont.innerHTML = '<div style="opacity:0.8;">No hay productos registrados.</div>';
+                return;
+            }
+            cont.innerHTML = products.map(p => `
+                <div style="display:flex;gap:10px;align-items:center;padding:8px;border-bottom:1px solid rgba(255,255,255,0.06);">
+                    <img src="${p.imageUrl || 'Logo.jpg'}" alt="${p.name}" style="width:42px;height:42px;object-fit:cover;border-radius:6px;background:#1b1030;" />
+                    <div style="flex:1;">
+                        <div style="font-weight:700;">${p.name} <small style="opacity:0.8;">(C$ ${p.price})</small></div>
+                        <div style="opacity:0.9;font-size:0.92em;">${p.description || '-'}</div>
+                    </div>
+                    <button onclick="deleteProduct('${p._id}')" style="background:#2a114d;color:#ff4d4d;border:1px solid #ff4d4d;border-radius:6px;padding:4px 8px;cursor:pointer;">Eliminar</button>
+                </div>
+            `).join('');
+        } catch (e) {
+            cont.textContent = 'Error cargando productos.';
+            console.error(e);
+        }
+    }
+
+    async function deleteProduct(id) {
+        if (!confirm('¿Seguro que deseas eliminar este producto?')) return;
+        try {
+            const res = await fetch('https://zonagamer-backend.onrender.com/products/' + encodeURIComponent(id), { method: 'DELETE' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            await renderProductsList();
+        } catch (e) {
+            alert('Error eliminando producto.');
+            console.error(e);
+        }
+    }
+    window.deleteProduct = deleteProduct;
+
+    // Usuarios management
+    async function renderAdmins() {
+        const cont = document.getElementById('usuarios-content');
+        if (!cont) return;
+        cont.textContent = 'Cargando admins...';
+        try {
+            const res = await fetch('https://zonagamer-backend.onrender.com/admins');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            if (!Array.isArray(data) || data.length === 0) {
+                cont.innerHTML = '<div style="opacity:0.8;">No hay admins registrados.</div>';
+                return;
+            }
+            cont.innerHTML = data.map(a => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-bottom:1px solid rgba(255,255,255,0.03);"> <div>${a.username} <small style=\"opacity:0.8;\">(${a.role||'admin'})</small></div> <div><button onclick=\"deleteAdmin('${a.username}')\" style=\"background:#ff4d4d;color:#fff;border:none;padding:6px 8px;border-radius:6px;cursor:pointer;\">Eliminar</button></div></div>`).join('');
+        } catch (e) {
+            cont.textContent = 'Error cargando admins.';
+            console.error(e);
+        }
+    }
+    async function renderEmpleados() {
+        const cont = document.getElementById('usuarios-content');
+        if (!cont) return;
+        cont.textContent = 'Cargando empleados...';
+        try {
+            const res = await fetch('https://zonagamer-backend.onrender.com/employees');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            if (!Array.isArray(data) || data.length === 0) {
+                cont.innerHTML = '<div style="opacity:0.8;">No hay empleados registrados.</div>';
+                return;
+            }
+            cont.innerHTML = data.map(emp => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-bottom:1px solid rgba(255,255,255,0.03);"> <div>${emp.username} <small style=\"opacity:0.8;\">(${emp.role||'trabajador'})</small></div> <div><button onclick=\"deleteEmpleado('${emp.username}')\" style=\"background:#ff4d4d;color:#fff;border:none;padding:6px 8px;border-radius:6px;cursor:pointer;\">Eliminar</button></div></div>`).join('');
+        } catch (e) {
+            cont.textContent = 'Error cargando empleados.';
+            console.error(e);
+        }
+    }
+
+    async function deleteAdmin(username) {
+        if (!confirm('¿Seguro que deseas eliminar este admin?')) return;
+        try {
+            const res = await fetch('https://zonagamer-backend.onrender.com/admins/' + encodeURIComponent(username), { method: 'DELETE' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            await renderAdmins();
+        } catch (e) {
+            alert('Error eliminando admin.');
+            console.error(e);
+        }
+    }
+    async function deleteEmpleado(username) {
+        if (!confirm('¿Seguro que deseas eliminar este empleado?')) return;
+        try {
+            const res = await fetch('https://zonagamer-backend.onrender.com/employees/' + encodeURIComponent(username), { method: 'DELETE' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            await renderEmpleados();
+        } catch (e) {
+            alert('Error eliminando empleado.');
+            console.error(e);
+        }
+    }
+
+    document.getElementById('addAdminBtn')?.addEventListener('click', async function(){
+        const user = document.getElementById('newAdminUser')?.value || '';
+        const pass = document.getElementById('newAdminPass')?.value || '';
+        const msg = document.getElementById('addAdminMsg');
+        if (!user || !pass) { if (msg) msg.textContent = 'Completa usuario y contraseña.'; return; }
+        try {
+            const res = await fetch('https://zonagamer-backend.onrender.com/admins', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username: user, password: pass, role: 'admin' }) });
+            const data = await res.json().catch(()=>({}));
+            if (!res.ok) { if (msg) msg.textContent = data.error || data.message || 'Error al añadir admin.'; return; }
+            if (msg) { msg.style.color = '#81fde9'; msg.textContent = 'Admin añadido.'; }
+            document.getElementById('newAdminUser').value=''; document.getElementById('newAdminPass').value='';
+            await renderAdmins();
+        } catch (e) { if (msg) msg.textContent = 'Error de conexión.'; console.error(e); }
+    });
+
+    document.getElementById('addEmpBtn')?.addEventListener('click', async function(){
+        const user = document.getElementById('newEmpUser')?.value || '';
+        const pass = document.getElementById('newEmpPass')?.value || '';
+        const role = document.getElementById('newEmpRole')?.value || 'trabajador';
+        const msg = document.getElementById('addEmpMsg');
+        if (!user || !pass) { if (msg) msg.textContent = 'Completa usuario y contraseña.'; return; }
+        try {
+            const res = await fetch('https://zonagamer-backend.onrender.com/employees', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username: user, password: pass, role }) });
+            const data = await res.json().catch(()=>({}));
+            if (!res.ok) { if (msg) msg.textContent = data.error || data.message || 'Error al añadir empleado.'; return; }
+            if (msg) { msg.style.color = '#81fde9'; msg.textContent = 'Empleado añadido.'; }
+            document.getElementById('newEmpUser').value=''; document.getElementById('newEmpPass').value='';
+            await renderEmpleados();
+        } catch (e) { if (msg) msg.textContent = 'Error de conexión.'; console.error(e); }
+    });
+
+    // When opening Usuarios panel, auto-load admins by default
+    document.getElementById('btn-usuarios')?.addEventListener('click', () => { renderAdmins(); });
+    document.getElementById('btn-productos')?.addEventListener('click', () => { renderProductsList(); });
+
+    document.getElementById('addProductForm')?.addEventListener('submit', async function(e){
+        e.preventDefault();
+        const msg = document.getElementById('addProductMsg');
+        if (msg) msg.textContent = '';
+        const name = document.getElementById('productName')?.value?.trim() || '';
+        const description = document.getElementById('productDescription')?.value?.trim() || '';
+        const price = Number(document.getElementById('productPrice')?.value || 0);
+        const imageUrl = document.getElementById('productImage')?.value?.trim() || '';
+        if (!name || !description || isNaN(price) || price < 0) {
+            if (msg) msg.textContent = 'Completa nombre, descripción y precio válido.';
+            return;
+        }
+        try {
+            const res = await fetch('https://zonagamer-backend.onrender.com/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description, price, imageUrl, category: 'bebida' })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                if (msg) msg.textContent = data.error || 'Error al añadir producto.';
+                return;
+            }
+            if (msg) { msg.style.color = '#81fde9'; msg.textContent = 'Producto añadido.'; }
+            e.target.reset();
+            await renderProductsList();
+        } catch (err) {
+            if (msg) msg.textContent = 'Error de conexión.';
+            console.error(err);
+        }
+    });
+
     </script>
 </body>
 </html>
