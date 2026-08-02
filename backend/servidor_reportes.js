@@ -1,4 +1,4 @@
-﻿// Requires y configuraciÃ³n inicial
+// Requires y configuraciÃ³n inicial
 const express = require('express');
 const mongoose = require('mongoose');
 const fs = require('fs');
@@ -65,7 +65,8 @@ function writeJson(file, data) {
 // Modelo para el estado de cada consola (usa mongoose, por eso va despuÃ©s de require)
 const consoleStateSchema = new mongoose.Schema({
   consoleNumber: { type: Number, required: true, unique: true },
-  state: { type: Object, required: true }
+  state: { type: Object, required: true },
+  stateHistory: { type: [mongoose.Schema.Types.Mixed], default: [] }
 });
 const ConsoleState = mongoose.model('ConsoleState', consoleStateSchema);
 // Obtener el estado de una consola por nÃºmero
@@ -529,14 +530,21 @@ app.get('/monitoreo', async (req, res) => {
     const andFilter = [];
     if (consoleType) andFilter.push({ consoleType });
     if (consoleNumber) andFilter.push({ consoleNumber: Number(consoleNumber) });
-    // Solo sesiones de los últimos 10 minutos, pero excluyendo los últimos 5 minutos
-    const now = new Date();
-    const tenMinAgo = new Date(now.getTime() - 10 * 60 * 1000);
-    const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
-    andFilter.push({ startDate: { $gte: tenMinAgo.toISOString(), $lte: fiveMinAgo.toISOString() } });
-    const filter = andFilter.length ? { $and: andFilter } : {};
-    const sessions = await Session.find(filter).sort({ startDate: -1 });
-    res.json(sessions);
+    const consoleFilter = {};
+    if (consoleType) consoleFilter.type = consoleType;
+    if (consoleNumber) consoleFilter.number = Number(consoleNumber);
+    const [consoles, states] = await Promise.all([
+      Console.find(consoleFilter).sort({ number: 1 }),
+      ConsoleState.find(consoleNumber ? { consoleNumber: Number(consoleNumber) } : {})
+    ]);
+    const cutoff = Date.now() - 5 * 60 * 1000;
+    const statesByNumber = new Map(states.map(item => [item.consoleNumber, item]));
+    res.json(consoles.map(consoleItem => {
+      const stored = statesByNumber.get(consoleItem.number);
+      const history = Array.isArray(stored && stored.stateHistory) ? stored.stateHistory : [];
+      const delayed = history.filter(item => Number(item && item.savedAt) <= cutoff).pop();
+      return { consoleType: consoleItem.type, consoleNumber: consoleItem.number, consoleName: consoleItem.name, delayedAt: delayed ? delayed.savedAt : null, state: delayed || null };
+    }));
   } catch (err) {
     console.error('Error en monitoreo:', err);
     res.status(500).json({ error: 'Error en monitoreo' });
@@ -733,6 +741,10 @@ app.post('/accion', (req, res) => {
   if (!nuevaAccion || !nuevaAccion.startDate) {
     return res.status(400).json({ error: 'Acción inválida' });
   }
+
+  nuevaAccion.consoleNumber = Number(nuevaAccion.consoleNumber) || 0;
+  nuevaAccion.totalPrice = Number(nuevaAccion.totalPrice ?? nuevaAccion.total ?? 0) || 0;
+  nuevaAccion.durationSeconds = Number(nuevaAccion.durationSeconds ?? nuevaAccion.duration ?? 0) || 0;
 
   // Si mongoose está conectado, guardar en MongoDB; si no, usar fallback a datos.json (útil para pruebas locales)
   if (mongoose.connection && mongoose.connection.readyState === 1) {

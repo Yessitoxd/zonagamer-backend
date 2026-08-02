@@ -1378,9 +1378,10 @@
             const dayLabel = (start && end && start !== end) ? (start + ' al ' + end) : start;
 
             const payload = {
-                summary: start === end ? { dayReport: start, totalMoney } : { start, end, totalMoney },
+                summary: start === end ? { dayReport: start, dayReportCellF5: start, dayTotalCellF8: totalMoney, totalMoney } : { start, end, dayReportCellF5: `${start} al ${end}`, dayTotalCellF8: totalMoney, totalMoney },
                 rows: rows,
-                productRows
+                productRows,
+                totals: { totalUses, totalMoney, totalTimeMinutes }
             };
 
             status.textContent = 'Generando archivo en servidor...';
@@ -1477,9 +1478,19 @@
                 if (statusEl) statusEl.textContent = '';
                 return;
             }
-            // Mostrar datos de monitoreo
+            // Fichas compactas con el estado de hace cinco minutos.
             if (content) {
-                content.innerHTML = data.map(s => `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.04);">Consola: ${s.consoleType||s.type||'-'} #${s.consoleNumber||s.number||'-'} — Empleado: ${s.employee||s.username||'-'} — Inicio: ${s.startDate||'-'} — Fin: ${s.endDate||'-'} — Precio: C$${s.totalPrice||s.total||0}</div>`).join('');
+                content.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:12px;padding:8px;max-height:420px;overflow:auto;background:rgba(0,0,0,0.06);border-radius:8px;';
+                content.innerHTML = data.map(item => {
+                    const state = item.state || {};
+                    const active = Boolean(state.sessionStartTime && Number(state.totalSeconds) > 0);
+                    const elapsed = active ? Math.max(0, (Number(item.delayedAt || 0) - Number(state.sessionStartTime || 0) - Number(state.totalPausedTime || 0)) / 1000) : 0;
+                    const remaining = active ? Math.max(0, Number(state.totalSeconds) - elapsed) : 0;
+                    const status = !item.state ? 'Sin datos aún' : active ? (state.pauseStartTime ? 'Pausada' : 'En uso') : 'Disponible';
+                    const color = active ? '#ffcc00' : '#81fde9';
+                    const time = seconds => { seconds = Math.round(seconds); return `${Math.floor(seconds / 3600)}:${String(Math.floor(seconds % 3600 / 60)).padStart(2,'0')}:${String(seconds % 60).padStart(2,'0')}`; };
+                    return `<article style="padding:12px;border:1px solid ${color};border-radius:14px;background:linear-gradient(145deg,#2a114d,#3b1d69);color:#fff;"><div style="display:flex;justify-content:space-between;gap:8px;font-weight:700;"><span>${item.consoleName || item.consoleType} #${item.consoleNumber}</span><span style="color:${color};font-size:.8em;">${status}</span></div><div style="height:7px;background:rgba(255,255,255,.14);border-radius:8px;margin:12px 0 7px;overflow:hidden;"><div style="height:100%;width:${active ? Math.min(100, Math.round(elapsed / Number(state.totalSeconds) * 100)) : 0}%;background:${color};"></div></div><div style="font-size:.86em;">${active ? `Restante: ${time(remaining)}` : 'Sin sesión activa'}</div><div style="font-size:.74em;opacity:.65;margin-top:5px;">Vista con 5 min de retraso</div></article>`;
+                }).join('');
             }
             if (statusEl) statusEl.textContent = '';
         } catch (e) {
