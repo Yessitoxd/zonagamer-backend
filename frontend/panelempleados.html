@@ -866,6 +866,23 @@
 
         }
 
+        function normalizeProductImageUrl(value) {
+            const url = String(value || '').trim();
+            const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/?#]+)/i) || url.match(/[?&]id=([^&#]+)/i);
+            return driveMatch ? `https://drive.google.com/uc?export=view&id=${driveMatch[1]}` : url;
+        }
+        function updateProductImagePreview(product) {
+            const preview = document.getElementById('productImagePreview');
+            if (!preview) return;
+            if (!product) {
+                preview.textContent = 'Selecciona un producto para ver su imagen';
+                return;
+            }
+            const url = normalizeProductImageUrl(product.imageUrl);
+            preview.innerHTML = url
+                ? `<img src="${url}" alt="${product.name || 'Producto'}" style="max-width:100%;max-height:112px;object-fit:contain;" onerror="this.remove();this.parentElement.textContent='La URL de imagen no es pública o no es válida.';"><span style="position:absolute;align-self:flex-end;margin-bottom:4px;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:4px;">${product.name || 'Producto'}</span>`
+                : 'Este producto no tiene imagen.';
+        }
         function renderProductsSidebar() {
             const select = document.getElementById('productSelect');
             if (!select) return;
@@ -883,6 +900,11 @@
                 select.appendChild(option);
             });
         }
+
+        document.getElementById('productSelect')?.addEventListener('change', event => {
+            const product = products.find(p => String(p._id) === event.target.value);
+            updateProductImagePreview(product);
+        });
 
         async function sellSelectedProduct() {
             const select = document.getElementById('productSelect');
@@ -1656,6 +1678,7 @@
         if (sellProductBtn) sellProductBtn.addEventListener('click', sellSelectedProduct);
         if (cancelProductBtn && productSelect) cancelProductBtn.addEventListener('click', () => {
             productSelect.value = '';
+            updateProductImagePreview(null);
             if (productQuantity) productQuantity.value = '1';
         });
     try { loadEarnings().catch(() => {}); } catch {}
