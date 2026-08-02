@@ -856,6 +856,14 @@
                 option.textContent = finalLabel || formatDuration(minutes);
                 timeSelect.appendChild(option);
             });
+            if (window.isYesseira) {
+                const customOption = document.createElement('option');
+                customOption.value = 'custom';
+                customOption.dataset.custom = 'true';
+                customOption.textContent = 'Tiempo personalizado';
+                timeSelect.appendChild(customOption);
+            }
+
         }
 
         function renderProductsSidebar() {
@@ -1327,10 +1335,26 @@
                 }
                 
                 const selectedOption = timeSelect.options[timeSelect.selectedIndex];
-                const selectedValue = selectedOption.value;
-                const selectedPrice = parseFloat(selectedOption.dataset.price);
+                let selectedValue = selectedOption.value;
+                let selectedPrice = parseFloat(selectedOption.dataset.price);
+                if (selectedOption.dataset.custom === 'true') {
+                    const minutesInput = prompt('¿Cuántos minutos deseas registrar?', '60');
+                    if (minutesInput === null) return;
+                    const priceInput = prompt('¿Qué precio deseas cobrar? Puedes poner 0 para gratis.', '0');
+                    if (priceInput === null) return;
+                    const minutes = Number(minutesInput);
+                    const customPrice = Number(priceInput);
+                    if (!Number.isFinite(minutes) || minutes <= 0 || !Number.isFinite(customPrice) || customPrice < 0) {
+                        alert('Ingresa minutos mayores que 0 y un precio igual o mayor a 0.');
+                        return;
+                    }
+                    selectedValue = Math.round(minutes * 60);
+                    selectedPrice = customPrice;
+                    delete card.dataset.overridePrice;
+                    card.querySelector('.price-display').textContent = `C$ ${customPrice}`;
+                }
                 const overridePrice = card.dataset.overridePrice ? parseFloat(card.dataset.overridePrice) : null;
-                const priceToUse = (overridePrice && !isNaN(overridePrice)) ? overridePrice : selectedPrice;
+                const priceToUse = (overridePrice !== null && !isNaN(overridePrice)) ? overridePrice : selectedPrice;
 
                 card.startNewSession(selectedValue, priceToUse);
             });
