@@ -1639,6 +1639,11 @@
             });
         }
     document.addEventListener('DOMContentLoaded', async () => {
+        // Esperar la comprobación de sesión antes de dibujar las fichas. Sin esto,
+        // la opción de dueña podía no aparecer al cargar más rápido que la sesión.
+        for (let attempts = 0; !window.currentUser && attempts < 100; attempts++) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
         await fetchConsoles();
         await fetchPrices();
         await fetchProducts();
