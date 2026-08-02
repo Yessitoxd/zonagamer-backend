@@ -537,6 +537,11 @@
         .console-card.shaking {
             animation: shake 0.3s infinite;
         }
+        /* Las opciones nativas se dibujan por el sistema operativo; estos colores
+           garantizan texto legible al abrir el selector de productos. */
+        #productSelect { color: #fff !important; }
+        #productSelect option { color: #161020; background: #ffffff; }
+        #productSelect option:checked { color: #161020; background: #81fde9; }
     </style>
 </head>
 <body>
