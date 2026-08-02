@@ -539,6 +539,20 @@ app.get('/sessions', async (req, res) => {
   }
 });
 
+// Elimina exclusivamente las sesiones del día actual en Managua; no acepta fechas externas.
+app.delete('/sessions/today', async (req, res) => {
+  try {
+    if (!session || !['dueña', 'admin'].includes(session.role)) {
+      return res.status(403).json({ error: 'No autorizado para borrar sesiones.' });
+    }
+    const today = new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0];
+    const result = await Session.deleteMany({ startDate: { $regex: `^${today}` } });
+    res.json({ ok: true, deletedCount: result.deletedCount || 0, date: today });
+  } catch (err) {
+    console.error('Error al borrar sesiones de hoy:', err);
+    res.status(500).json({ error: 'Error al borrar sesiones de hoy.' });
+  }
+});
 // Endpoint de monitoreo con retraso de 5 minutos
 app.get('/monitoreo', async (req, res) => {
   try {
@@ -632,18 +646,23 @@ app.put('/prices', async (req, res) => {
     if (!Array.isArray(precios) || precios.length === 0) {
       return res.status(400).json({ message: 'No se enviaron precios para actualizar.' });
     }
+    let updatedCount = 0;
     for (const precio of precios) {
       const parsedDuration = Number(precio.duration);
       const parsedPrice = Number(precio.price);
-      if (!precio._id || !precio.console || isNaN(parsedDuration) || parsedDuration < 1 || isNaN(parsedPrice) || parsedPrice < 0) continue;
-      await Price.findByIdAndUpdate(precio._id, {
+      if (!precio._id || !precio.console || isNaN(parsedDuration) || parsedDuration < 1 || isNaN(parsedPrice) || parsedPrice < 0) {
+        return res.status(400).json({ message: 'Datos de precio inválidos.' });
+      }
+      const updated = await Price.findByIdAndUpdate(precio._id, {
         console: precio.console,
         duration: parsedDuration,
         price: parsedPrice,
         label: (precio.label || '').toString().trim()
-      });
+      }, { new: true });
+      if (!updated) return res.status(404).json({ message: 'No se encontró el precio a editar.' });
+      updatedCount++;
     }
-    res.json({ message: 'Precios actualizados correctamente.' });
+    res.json({ message: 'Precios actualizados correctamente.', updatedCount });
   } catch (err) {
     console.error('Error al actualizar precios:', err);
     res.status(500).json({ message: 'Error al actualizar precios.' });
