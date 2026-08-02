@@ -808,7 +808,7 @@
                         <div class="transfer-btns hidden">
                             <button class="control-btn reset-btn cancel-transfer-btn">Cancelar</button>
                         </div>
-                        ${window.isOwner ? '<div style="margin-top:8px;display:flex;justify-content:center;"><button class="control-btn modify-price-btn" style="background:#ffcc00;color:#000;border-radius:8px;padding:6px 10px;">Modificar precio</button></div>' : ''}
+                        ${window.isOwner ? '<div style="margin-top:8px;display:flex;justify-content:center;"><button class="control-btn modify-price-btn" style="background:#ffcc00;color:#000;border-radius:8px;padding:6px 10px;">Modificar tiempo y precio</button></div>' : ''}
                     </div>
                 `;
                 consoleGrid.appendChild(card);
@@ -1474,22 +1474,35 @@
             const modifyBtn = card.querySelector('.modify-price-btn');
             if (modifyBtn) {
                 modifyBtn.addEventListener('click', () => {
-                    const currentOverride = card.dataset.overridePrice ? card.dataset.overridePrice : '';
-                    const input = prompt("Ingrese el precio temporal (número) o escriba 'clear' para eliminar:", currentOverride);
-                    if (input === null) return;
-                    const valTrim = input.trim().toLowerCase();
-                    if (valTrim === 'clear' || input.trim() === '') {
-                        delete card.dataset.overridePrice;
-                        const sel = timeSelect.options[timeSelect.selectedIndex];
-                        const selPrice = sel ? sel.dataset.price : '0';
-                        card.querySelector('.price-display').textContent = `C$ ${selPrice}`;
-                        alert('Override eliminado');
+                    if (card.totalSeconds > 0) {
+                        alert('Este ajuste se hace antes de iniciar la sesión. Para una sesión activa usa Añadir más tiempo.');
                         return;
                     }
-                    const parsed = parseFloat(input);
-                    if (isNaN(parsed) || parsed < 0) { alert('Precio inválido'); return; }
-                    card.dataset.overridePrice = parsed;
-                    card.querySelector('.price-display').textContent = `C$ ${parsed} (override)`;
+                    const selected = timeSelect.options[timeSelect.selectedIndex];
+                    const defaultMinutes = selected && Number(selected.value) ? Math.round(Number(selected.value) / 60) : 30;
+                    const defaultPrice = selected ? (selected.dataset.price || '0') : '0';
+                    const minutesInput = prompt('Tiempo personalizado en minutos:', defaultMinutes);
+                    if (minutesInput === null) return;
+                    const priceInput = prompt('Precio para ese tiempo. Puedes poner 0 si es gratis:', defaultPrice);
+                    if (priceInput === null) return;
+                    const minutes = Number(minutesInput);
+                    const price = Number(priceInput);
+                    if (!Number.isFinite(minutes) || minutes <= 0 || !Number.isFinite(price) || price < 0) {
+                        alert('Ingresa minutos mayores que 0 y un precio igual o mayor a 0.');
+                        return;
+                    }
+                    let custom = timeSelect.querySelector('option[data-owner-custom="true"]');
+                    if (!custom) {
+                        custom = document.createElement('option');
+                        custom.dataset.ownerCustom = 'true';
+                        timeSelect.appendChild(custom);
+                    }
+                    custom.value = String(Math.round(minutes * 60));
+                    custom.dataset.price = String(price);
+                    custom.textContent = `Personalizado: ${minutes} min — C$ ${price}`;
+                    timeSelect.value = custom.value;
+                    delete card.dataset.overridePrice;
+                    card.querySelector('.price-display').textContent = `C$ ${price}`;
                 });
             }
             
