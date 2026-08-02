@@ -88,9 +88,17 @@ app.post('/console-state/:number', async (req, res) => {
     const { number } = req.params;
     const { state } = req.body;
     if (!state) return res.status(400).json({ error: 'Falta el estado' });
-    const updated = await ConsoleState.findOneAndUpdate(
+    const now = Date.now();
+    const snapshot = { ...state, savedAt: Number(state.savedAt) || now };
+    const previous = await ConsoleState.findOne({ consoleNumber: Number(number) });
+    const history = Array.isArray(previous && previous.stateHistory) ? previous.stateHistory : [];
+    const last = history[history.length - 1];
+    // Una muestra por minuto basta para el retraso solicitado y limita el tamaño de la colección.
+    if (!last || now - Number(last.savedAt || 0) >= 60 * 1000) history.push(snapshot);
+    const recentHistory = history.filter(item => Number(item && item.savedAt) >= now - 2 * 60 * 60 * 1000);
+    await ConsoleState.findOneAndUpdate(
       { consoleNumber: Number(number) },
-      { state },
+      { state: snapshot, stateHistory: recentHistory },
       { upsert: true, new: true }
     );
     res.json({ ok: true });
