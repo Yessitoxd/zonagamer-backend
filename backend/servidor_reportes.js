@@ -553,6 +553,28 @@ app.delete('/sessions/today', async (req, res) => {
     res.status(500).json({ error: 'Error al borrar sesiones de hoy.' });
   }
 });
+// Limpieza operativa: elimina exclusivamente los datos del día actual en Managua.
+app.delete('/maintenance/today', async (req, res) => {
+  try {
+    if (!session || !['dueña', 'admin'].includes(session.role)) {
+      return res.status(403).json({ error: 'No autorizado para limpiar datos.' });
+    }
+    const today = new Date().toLocaleString('sv-SE', { timeZone: 'America/Managua' }).split(' ')[0];
+    const [sessions, earnings, productSales] = await Promise.all([
+      Session.deleteMany({ startDate: { $regex: `^${today}` } }),
+      Earning.deleteMany({ dateISO: today }),
+      ProductSale.deleteMany({ createdAt: { $regex: `^${today}` } })
+    ]);
+    res.json({ ok: true, date: today, deleted: {
+      sessions: sessions.deletedCount || 0,
+      earnings: earnings.deletedCount || 0,
+      productSales: productSales.deletedCount || 0
+    }});
+  } catch (err) {
+    console.error('Error al limpiar datos de hoy:', err);
+    res.status(500).json({ error: 'Error al limpiar los datos de hoy.' });
+  }
+});
 // Endpoint de monitoreo con retraso de 5 minutos
 app.get('/monitoreo', async (req, res) => {
   try {
