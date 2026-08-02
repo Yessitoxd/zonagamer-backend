@@ -808,7 +808,7 @@
                         <div class="transfer-btns hidden">
                             <button class="control-btn reset-btn cancel-transfer-btn">Cancelar</button>
                         </div>
-                        ${window.isOwner ? '<div style="margin-top:8px;display:flex;justify-content:center;"><button class="control-btn modify-price-btn" style="background:#ffcc00;color:#000;border-radius:8px;padding:6px 10px;">Modificar tiempo y precio</button></div>' : ''}
+                        ${window.isOwner ? '<div style="margin-top:8px;display:flex;justify-content:center;"><button class="control-btn calculate-time-btn" style="background:#81fde9;color:#161020;border-radius:8px;padding:6px 10px;">Calcular tiempo</button><button class="control-btn modify-price-btn" style="background:#ffcc00;color:#000;border-radius:8px;padding:6px 10px;">Modificar tiempo y precio</button></div>' : ''}
                     </div>
                 `;
                 consoleGrid.appendChild(card);
@@ -1471,6 +1471,41 @@
                 }
             });
             
+            const calculateBtn = card.querySelector('.calculate-time-btn');
+            if (calculateBtn) {
+                calculateBtn.addEventListener('click', () => {
+                    if (card.totalSeconds > 0) {
+                        alert('El cálculo se hace antes de iniciar la sesión.');
+                        return;
+                    }
+                    const amountInput = prompt('¿Cuántos córdobas tiene el cliente? (Tarifa actual: C$1 = 1 minuto)', '');
+                    if (amountInput === null) return;
+                    const amount = Number(amountInput);
+                    if (!Number.isFinite(amount) || amount < 0) {
+                        alert('Ingresa un monto igual o mayor a 0.');
+                        return;
+                    }
+                    const minutes = Math.floor(amount);
+                    const hours = Math.floor(minutes / 60);
+                    const remaining = minutes % 60;
+                    const readable = hours > 0
+                        ? `${hours} hora${hours === 1 ? '' : 's'}${remaining ? ` y ${remaining} minuto${remaining === 1 ? '' : 's'}` : ''}`
+                        : `${minutes} minuto${minutes === 1 ? '' : 's'}`;
+                    if (!confirm(`C$ ${amount} equivalen a ${readable}. ¿Quieres usar ese tiempo en esta ficha?`)) return;
+                    let custom = timeSelect.querySelector('option[data-owner-custom="true"]');
+                    if (!custom) {
+                        custom = document.createElement('option');
+                        custom.dataset.ownerCustom = 'true';
+                        timeSelect.appendChild(custom);
+                    }
+                    custom.value = String(minutes * 60);
+                    custom.dataset.price = String(amount);
+                    custom.textContent = `Personalizado: ${readable} — C$ ${amount}`;
+                    timeSelect.value = custom.value;
+                    delete card.dataset.overridePrice;
+                    card.querySelector('.price-display').textContent = `C$ ${amount}`;
+                });
+            }
             const modifyBtn = card.querySelector('.modify-price-btn');
             if (modifyBtn) {
                 modifyBtn.addEventListener('click', () => {
