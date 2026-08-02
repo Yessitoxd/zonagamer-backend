@@ -618,7 +618,7 @@
                 const s = await r.json();
                 window.currentUser = s || null;
                 if (s && s.username === 'Yesseira') window.isYesseira = true;
-                if (s && s.username && s.role === 'trabajador') {
+                if (s && s.username && (s.role === 'trabajador' || s.role === 'dueña' || s.username === 'Yesseira')) {
                     employeeName = s.username;
                 } else {
                     window.location.href = 'Index.html';

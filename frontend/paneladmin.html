@@ -1550,6 +1550,16 @@
     }
     window.deleteProduct = deleteProduct;
 
+    function escapeUserText(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+    }
+    window.toggleUserPassword = function(button) {
+        const field = button.parentElement.querySelector('input');
+        if (!field) return;
+        const visible = field.type === 'text';
+        field.type = visible ? 'password' : 'text';
+        button.textContent = visible ? '👁' : '🙈';
+    };
     // Usuarios management
     async function renderAdmins() {
         const cont = document.getElementById('usuarios-content');
@@ -1563,7 +1573,7 @@
                 cont.innerHTML = '<div style="opacity:0.8;">No hay admins registrados.</div>';
                 return;
             }
-            cont.innerHTML = data.map(a => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-bottom:1px solid rgba(255,255,255,0.03);"> <div>${a.username} <small style=\"opacity:0.8;\">(${a.role||'admin'})</small></div> <div><button onclick=\"deleteAdmin('${a.username}')\" style=\"background:#ff4d4d;color:#fff;border:none;padding:6px 8px;border-radius:6px;cursor:pointer;\">Eliminar</button></div></div>`).join('');
+            cont.innerHTML = data.map(a => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);"><div><strong>${escapeUserText(a.username)}</strong> <small style="opacity:0.8;">(${escapeUserText(a.role||'admin')})</small><div style="display:flex;gap:5px;margin-top:5px;"><input type="password" readonly value="${escapeUserText(a.password)}" style="width:115px;padding:4px 6px;border-radius:5px;border:1px solid #81fde9;background:#fff;color:#161020;"><button type="button" onclick="toggleUserPassword(this)" style="padding:3px 7px;border-radius:5px;border:1px solid #81fde9;background:#2a114d;color:#fff;cursor:pointer;">👁</button></div></div><div><button onclick="deleteAdmin('${escapeUserText(a.username)}')" style="background:#ff4d4d;color:#fff;border:none;padding:6px 8px;border-radius:6px;cursor:pointer;">Eliminar</button></div></div>`).join('');
         } catch (e) {
             cont.textContent = 'Error cargando admins.';
             console.error(e);
@@ -1581,7 +1591,7 @@
                 cont.innerHTML = '<div style="opacity:0.8;">No hay empleados registrados.</div>';
                 return;
             }
-            cont.innerHTML = data.map(emp => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-bottom:1px solid rgba(255,255,255,0.03);"> <div>${emp.username} <small style=\"opacity:0.8;\">(${emp.role||'trabajador'})</small></div> <div><button onclick=\"deleteEmpleado('${emp.username}')\" style=\"background:#ff4d4d;color:#fff;border:none;padding:6px 8px;border-radius:6px;cursor:pointer;\">Eliminar</button></div></div>`).join('');
+            cont.innerHTML = data.map(emp => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);"><div><strong>${escapeUserText(emp.username)}</strong> <small style="opacity:0.8;">(${escapeUserText(emp.role||'trabajador')})</small><div style="display:flex;gap:5px;margin-top:5px;"><input type="password" readonly value="${escapeUserText(emp.password)}" style="width:115px;padding:4px 6px;border-radius:5px;border:1px solid #81fde9;background:#fff;color:#161020;"><button type="button" onclick="toggleUserPassword(this)" style="padding:3px 7px;border-radius:5px;border:1px solid #81fde9;background:#2a114d;color:#fff;cursor:pointer;">👁</button></div></div><div><button onclick="deleteEmpleado('${escapeUserText(emp.username)}')" style="background:#ff4d4d;color:#fff;border:none;padding:6px 8px;border-radius:6px;cursor:pointer;">Eliminar</button></div></div>`).join('');
         } catch (e) {
             cont.textContent = 'Error cargando empleados.';
             console.error(e);

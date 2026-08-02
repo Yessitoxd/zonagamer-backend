@@ -122,8 +122,16 @@ app.post('/session', async (req, res) => {
     const { username, password, role } = req.body || {};
     if (!username || !password || !role) return res.status(400).json({ ok: false, error: 'Faltan credenciales' });
     if (role === 'trabajador') {
-      const emp = await Employee.findOne({ username });
-      if (!emp || emp.password !== password) return res.status(401).json({ ok: false, error: 'Credenciales invÃ¡lidas' });
+      let emp = await Employee.findOne({ username });
+      // La dueña puede usar el panel operativo con la misma cuenta de admin.
+      if (!emp && username === 'Yesseira') {
+        const ownerAdmin = await Admin.findOne({ username });
+        if (ownerAdmin && ownerAdmin.password === password) {
+          session = { username: ownerAdmin.username, role: 'dueña' };
+          return res.json({ ok: true, session });
+        }
+      }
+      if (!emp || emp.password !== password) return res.status(401).json({ ok: false, error: 'Credenciales inválidas' });
       session = { username: emp.username, role: emp.role || 'trabajador' };
       return res.json({ ok: true, session });
     } else if (role === 'admin') {
