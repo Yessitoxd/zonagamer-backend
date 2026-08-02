@@ -579,7 +579,7 @@
         const usernameDisplay = document.getElementById('usernameDisplay');
         const sidebar = document.getElementById('sidebar');
         const logoutBtn = document.getElementById('logoutBtn');
-        window.isYesseira = false;
+        window.isOwner = false;
             window.currentUser = null;
         try {
             const alarmEl = document.getElementById('alarm-sound');
@@ -617,7 +617,7 @@
             if (r.ok) {
                 const s = await r.json();
                 window.currentUser = s || null;
-                if (s && s.username === 'Yesseira') window.isYesseira = true;
+                if (s && (s.role === 'dueña' || s.username === 'Yesseira')) window.isOwner = true;
                 if (s && s.username && (s.role === 'trabajador' || s.role === 'dueña' || s.username === 'Yesseira')) {
                     employeeName = s.username;
                 } else {
@@ -808,7 +808,7 @@
                         <div class="transfer-btns hidden">
                             <button class="control-btn reset-btn cancel-transfer-btn">Cancelar</button>
                         </div>
-                        ${window.isYesseira ? '<div style="margin-top:8px;display:flex;justify-content:center;"><button class="control-btn modify-price-btn" style="background:#ffcc00;color:#000;border-radius:8px;padding:6px 10px;">Modificar precio</button></div>' : ''}
+                        ${window.isOwner ? '<div style="margin-top:8px;display:flex;justify-content:center;"><button class="control-btn modify-price-btn" style="background:#ffcc00;color:#000;border-radius:8px;padding:6px 10px;">Modificar precio</button></div>' : ''}
                     </div>
                 `;
                 consoleGrid.appendChild(card);
@@ -856,7 +856,7 @@
                 option.textContent = finalLabel || formatDuration(minutes);
                 timeSelect.appendChild(option);
             });
-            if (window.isYesseira) {
+            if (window.isOwner) {
                 const customOption = document.createElement('option');
                 customOption.value = 'custom';
                 customOption.dataset.custom = 'true';
