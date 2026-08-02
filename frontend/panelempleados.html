@@ -808,7 +808,7 @@
                         <div class="transfer-btns hidden">
                             <button class="control-btn reset-btn cancel-transfer-btn">Cancelar</button>
                         </div>
-                        ${window.isOwner ? '<div style="margin-top:8px;display:flex;justify-content:center;"><button class="control-btn calculate-time-btn" style="background:#81fde9;color:#161020;border-radius:8px;padding:6px 10px;">Calcular tiempo</button><button class="control-btn modify-price-btn" style="background:#ffcc00;color:#000;border-radius:8px;padding:6px 10px;">Modificar tiempo y precio</button></div>' : ''}
+                        ${window.isOwner ? '<div style="margin-top:8px;display:flex;justify-content:center;"><button class="control-btn modify-price-btn" style="background:#ffcc00;color:#000;border-radius:8px;padding:6px 10px;">Modificar tiempo y precio</button></div>' : ''}
                     </div>
                 `;
                 consoleGrid.appendChild(card);
@@ -1510,20 +1510,25 @@
             if (modifyBtn) {
                 modifyBtn.addEventListener('click', () => {
                     if (card.totalSeconds > 0) {
-                        alert('Este ajuste se hace antes de iniciar la sesión. Para una sesión activa usa Añadir más tiempo.');
+                        alert('Este ajuste se hace antes de iniciar la sesión.');
                         return;
                     }
-                    const selected = timeSelect.options[timeSelect.selectedIndex];
-                    const defaultMinutes = selected && Number(selected.value) ? Math.round(Number(selected.value) / 60) : 30;
-                    const defaultPrice = selected ? (selected.dataset.price || '0') : '0';
-                    const minutesInput = prompt('Tiempo personalizado en minutos:', defaultMinutes);
+                    const amountInput = prompt('Monto o precio del cliente (C$). Tarifa actual: C$1 = 1 minuto:', '0');
+                    if (amountInput === null) return;
+                    const price = Number(String(amountInput).replace(',', '.').trim());
+                    if (!Number.isFinite(price) || price < 0) {
+                        alert('Ingresa un precio igual o mayor a 0.');
+                        return;
+                    }
+                    const suggestedMinutes = Math.floor(price);
+                    const hours = Math.floor(suggestedMinutes / 60);
+                    const remaining = suggestedMinutes % 60;
+                    const readable = hours > 0 ? `${hours} hora${hours === 1 ? '' : 's'}${remaining ? ` y ${remaining} minuto${remaining === 1 ? '' : 's'}` : ''}` : `${suggestedMinutes} minuto${suggestedMinutes === 1 ? '' : 's'}`;
+                    const minutesInput = prompt(`C$ ${price} equivalen a ${readable}. Ajusta el tiempo final en minutos si lo necesitas:`, suggestedMinutes);
                     if (minutesInput === null) return;
-                    const priceInput = prompt('Precio para ese tiempo. Puedes poner 0 si es gratis:', defaultPrice);
-                    if (priceInput === null) return;
-                    const minutes = Number(minutesInput);
-                    const price = Number(priceInput);
-                    if (!Number.isFinite(minutes) || minutes <= 0 || !Number.isFinite(price) || price < 0) {
-                        alert('Ingresa minutos mayores que 0 y un precio igual o mayor a 0.');
+                    const minutes = Number(String(minutesInput).replace(',', '.').trim());
+                    if (!Number.isFinite(minutes) || minutes <= 0) {
+                        alert('Ingresa minutos mayores que 0.');
                         return;
                     }
                     let custom = timeSelect.querySelector('option[data-owner-custom="true"]');
