@@ -588,7 +588,7 @@ app.post('/prices', async (req, res) => {
     const { console, duration, price, label } = req.body;
     const parsedDuration = Number(duration);
     const parsedPrice = Number(price);
-    if (!console || isNaN(parsedDuration) || parsedDuration < 1 || isNaN(parsedPrice) || parsedPrice < 1) {
+    if (!console || isNaN(parsedDuration) || parsedDuration < 1 || isNaN(parsedPrice) || parsedPrice < 0) {
       return res.status(400).json({ message: 'Faltan datos requeridos.' });
     }
     const nuevoPrecio = new Price({
@@ -619,7 +619,7 @@ app.put('/prices', async (req, res) => {
     for (const precio of precios) {
       const parsedDuration = Number(precio.duration);
       const parsedPrice = Number(precio.price);
-      if (!precio._id || !precio.console || isNaN(parsedDuration) || parsedDuration < 1 || isNaN(parsedPrice) || parsedPrice < 1) continue;
+      if (!precio._id || !precio.console || isNaN(parsedDuration) || parsedDuration < 1 || isNaN(parsedPrice) || parsedPrice < 0) continue;
       await Price.findByIdAndUpdate(precio._id, {
         console: precio.console,
         duration: parsedDuration,

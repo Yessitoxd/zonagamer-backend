@@ -466,8 +466,8 @@
                                     <input type="number" id="ps5-minutes" min="1" required class="neon-input" placeholder="Ej: 30">
                                 </div>
                                 <div class="input-group">
-                                    <label for="ps5-price">Precio (C$)</label>
-                                    <input type="number" id="ps5-price" min="1" required class="neon-input" placeholder="Ej: 50">
+                                    <label for="ps5-price">Precio (C$, admite 0 para promo gratis)</label>
+                                    <input type="number" id="ps5-price" min="0" required class="neon-input" placeholder="Ej: 0 para promo gratis">
                                 </div>
                                 <div class="input-group">
                                     <label for="ps5-label">Descripción promo (opcional)</label>
@@ -487,8 +487,8 @@
                                     <input type="number" id="switch-minutes" min="1" required class="neon-input" placeholder="Ej: 30">
                                 </div>
                                 <div class="input-group">
-                                    <label for="switch-price">Precio (C$)</label>
-                                    <input type="number" id="switch-price" min="1" required class="neon-input" placeholder="Ej: 50">
+                                    <label for="switch-price">Precio (C$, admite 0 para promo gratis)</label>
+                                    <input type="number" id="switch-price" min="0" required class="neon-input" placeholder="Ej: 0 para promo gratis">
                                 </div>
                                 <div class="input-group">
                                     <label for="switch-label">Descripción promo (opcional)</label>
@@ -514,7 +514,7 @@
                                 <input type="text" id="productDescription" class="neon-input" placeholder="Ej: Bebida fría" required>
                             </div>
                             <div class="input-group">
-                                <label for="productPrice">Precio (C$)</label>
+                                <label for="productPrice">Precio (C$, admite 0 para promo gratis)</label>
                                 <input type="number" id="productPrice" min="0" class="neon-input" placeholder="Ej: 35" required>
                             </div>
                             <div class="input-group">
@@ -1231,7 +1231,7 @@
                     const minutes = parseInt(document.getElementById('ps5-minutes').value, 10);
                     const price = parseInt(document.getElementById('ps5-price').value, 10);
                     const label = (document.getElementById('ps5-label').value || '').trim();
-                    if (!minutes || !price || minutes < 1 || price < 1) {
+                    if (!Number.isFinite(minutes) || !Number.isFinite(price) || minutes < 1 || price < 0) {
                         if (msg) msg.textContent = 'Completa todos los campos correctamente.';
                         return;
                     }
@@ -1268,7 +1268,7 @@
                     const minutes = parseInt(document.getElementById('switch-minutes').value, 10);
                     const price = parseInt(document.getElementById('switch-price').value, 10);
                     const label = (document.getElementById('switch-label').value || '').trim();
-                    if (!minutes || !price || minutes < 1 || price < 1) {
+                    if (!Number.isFinite(minutes) || !Number.isFinite(price) || minutes < 1 || price < 0) {
                         if (msg) msg.textContent = 'Completa todos los campos correctamente.';
                         return;
                     }
@@ -1308,7 +1308,7 @@
             const minutes = prompt('Nuevo tiempo en minutos:');
             const price = prompt('Nuevo precio en C$');
             const label = prompt('Descripción promo (opcional):', '');
-            if (!minutes || !price || isNaN(minutes) || isNaN(price) || minutes < 1 || price < 1) {
+            if (!minutes || price === null || isNaN(minutes) || isNaN(price) || minutes < 1 || price < 0) {
                 if (typeof showToast === 'function') showToast('Datos inválidos.', 6000);
                 return;
             }
