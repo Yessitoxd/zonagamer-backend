@@ -1305,24 +1305,32 @@
         });
 
         window.editPrice = function(id, consoleType) {
-            const minutes = prompt('Nuevo tiempo en minutos:');
-            const price = prompt('Nuevo precio en C$');
+            const minutesInput = prompt('Nuevo tiempo en minutos:');
+            if (minutesInput === null) return;
+            const priceInput = prompt('Nuevo precio en C$ (puede ser 0):');
+            if (priceInput === null) return;
             const label = prompt('Descripción promo (opcional):', '');
-            if (!minutes || price === null || isNaN(minutes) || isNaN(price) || minutes < 1 || price < 0) {
-                if (typeof showToast === 'function') showToast('Datos inválidos.', 6000);
+            const minutes = Number(String(minutesInput).replace(',', '.').trim());
+            const price = Number(String(priceInput).replace(',', '.').trim());
+            if (!Number.isFinite(minutes) || minutes <= 0 || !Number.isFinite(price) || price < 0) {
+                if (typeof showToast === 'function') showToast('Ingresa minutos mayores que 0 y un precio igual o mayor a 0.', 6000);
                 return;
             }
             fetch('https://zonagamer-backend.onrender.com/prices', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify([{ _id: id, console: consoleType, duration: parseInt(minutes,10), price: parseInt(price,10), label: (label || '').trim() }])
+                body: JSON.stringify([{ _id: id, console: consoleType, duration: minutes, price, label: (label || '').trim() }])
             })
-            .then(res => res.json())
+            .then(async res => {
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || data.error || 'No se pudo editar el precio.');
+                return data;
+            })
             .then(() => {
                 if (typeof showToast === 'function') showToast('Precio editado correctamente', 6000);
                 renderPricesList();
             })
-            .catch(() => { if (typeof showToast === 'function') showToast('Error al editar precio', 6000); });
+            .catch(error => { if (typeof showToast === 'function') showToast(error.message || 'Error al editar precio', 6000); });
         };
 
         window.deletePrice = function(id, consoleType) {
