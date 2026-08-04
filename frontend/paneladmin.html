@@ -1375,8 +1375,12 @@
             const productRes = await fetch(`https://zonagamer-backend.onrender.com/product-sales?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
             const productSales = await productRes.json().catch(() => []);
             const productRows = Array.isArray(productSales) ? productSales.map(p => ({
+                fecha: p.createdAt || '',
                 trabajador: p.employee || '',
+                producto: p.productName || p.description || '',
                 descripcion: p.description || p.productName || '',
+                cantidad: Number(p.quantity || 1),
+                precioUnitario: Number(p.unitPrice || 0),
                 precio: Number(p.price || 0)
             })) : [];
 

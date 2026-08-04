@@ -206,24 +206,49 @@ async function exportReportFromTemplate(rows, options = {}) {
     worksheet.getColumn(10).width = 40; // Comentario
   } catch (e) {}
 
-  // Optional second sheet for product sales (bebidas/snacks)
+  // Hoja de bebidas: detalle de cada venta y resumen agrupado por producto.
   try {
     const productRows = Array.isArray(options.productRows) ? options.productRows : [];
     const existing = workbook.getWorksheet('Bebidas');
     if (existing) workbook.removeWorksheet(existing.id);
     const wsProducts = workbook.addWorksheet('Bebidas');
-    wsProducts.addRow(['Trabajador', 'Descripción', 'Precio']);
+    wsProducts.addRow(['Fecha', 'Trabajador', 'Producto', 'Cantidad', 'Precio unitario', 'Total', '', 'Resumen por producto', 'Cantidad total', 'Ventas', 'Ingreso total']);
     wsProducts.getRow(1).font = { bold: true };
+    const grouped = new Map();
     productRows.forEach((r) => {
+      const fecha = formatISOToDDMMYYYY(r.fecha || r.createdAt || '');
       const worker = r.trabajador || r.employee || '';
-      const description = r.descripcion || r.description || r.productName || '';
-      const price = Number(r.precio || r.price || 0) || 0;
-      wsProducts.addRow([worker, description, price]);
+      const product = r.producto || r.productName || r.descripcion || r.description || '';
+      const quantity = Math.max(1, Math.floor(Number(r.cantidad ?? r.quantity ?? 1) || 1));
+      const total = Number(r.precio ?? r.price ?? 0) || 0;
+      const unitPrice = Number(r.precioUnitario ?? r.unitPrice ?? (total / quantity)) || 0;
+      wsProducts.addRow([fecha, worker, product, quantity, unitPrice, total]);
+      const key = `${product}__${unitPrice}`;
+      const current = grouped.get(key) || { product, quantity: 0, sales: 0, total: 0 };
+      current.quantity += quantity;
+      current.sales += 1;
+      current.total += total;
+      grouped.set(key, current);
     });
-    wsProducts.getColumn(1).width = 24;
-    wsProducts.getColumn(2).width = 52;
-    wsProducts.getColumn(3).width = 14;
-    wsProducts.getColumn(3).numFmt = '#,##0.00';
+    let summaryRow = 2;
+    [...grouped.values()].sort((a, b) => a.product.localeCompare(b.product)).forEach(item => {
+      wsProducts.getCell(summaryRow, 8).value = item.product;
+      wsProducts.getCell(summaryRow, 9).value = item.quantity;
+      wsProducts.getCell(summaryRow, 10).value = item.sales;
+      wsProducts.getCell(summaryRow, 11).value = item.total;
+      summaryRow++;
+    });
+    if (productRows.length) {
+      const totalRow = productRows.length + 2;
+      wsProducts.getCell(totalRow, 3).value = 'Total';
+      wsProducts.getCell(totalRow, 4).value = productRows.reduce((sum, r) => sum + Math.max(1, Math.floor(Number(r.cantidad ?? r.quantity ?? 1) || 1)), 0);
+      wsProducts.getCell(totalRow, 6).value = productRows.reduce((sum, r) => sum + (Number(r.precio ?? r.price ?? 0) || 0), 0);
+      wsProducts.getRow(totalRow).font = { bold: true };
+    }
+    for (const column of [5, 6, 11]) wsProducts.getColumn(column).numFmt = '#,##0.00';
+    wsProducts.getColumn(1).width = 14; wsProducts.getColumn(2).width = 22; wsProducts.getColumn(3).width = 30;
+    wsProducts.getColumn(4).width = 11; wsProducts.getColumn(5).width = 15; wsProducts.getColumn(6).width = 14;
+    wsProducts.getColumn(8).width = 30; wsProducts.getColumn(9).width = 14; wsProducts.getColumn(10).width = 10; wsProducts.getColumn(11).width = 15;
   } catch (e) {
     // keep report generation alive even if products sheet fails
   }
