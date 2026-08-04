@@ -16,11 +16,9 @@ async function exportReportFromTemplate(rows, options = {}) {
     // accept Date or YYYY-MM-DD
     try {
       if (iso instanceof Date) {
-        const d = iso;
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const yy = d.getFullYear();
-        return `${dd}-${mm}-${yy}`;
+        const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Managua', day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(iso);
+        const pick = type => parts.find(part => part.type === type)?.value || '';
+        return `-${pick('month')}-${pick('year')}`;
       }
       if (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
         const [y, m, d] = iso.split('-');

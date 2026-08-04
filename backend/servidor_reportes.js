@@ -369,7 +369,21 @@ app.post('/generate-report-sa', async (req, res) => {
   }
   try {
     const { rows, sheetName, summary, productRows } = req.body || {};
-    const result = await localReports.exportReportFromTemplate(rows, { sheetName, summary, productRows });
+    // Las ventas de bebidas se toman directamente de MongoDB para conservar fecha,
+    // cantidad y precio unitario aunque el navegador tenga una versión en caché.
+    let authoritativeProductRows = Array.isArray(productRows) ? productRows : [];
+    const reportStart = summary && (summary.start || summary.dayReport);
+    const reportEnd = summary && (summary.end || summary.dayReport || summary.start);
+    if (reportStart && reportEnd) {
+      const from = new Date(`${reportStart}T00:00:00.000-06:00`);
+      const to = new Date(`${reportEnd}T23:59:59.999-06:00`);
+      const sales = await ProductSale.find({ createdAt: { $gte: from.toISOString(), $lte: to.toISOString() } }).sort({ createdAt: 1 });
+      authoritativeProductRows = sales.map(sale => ({
+        fecha: sale.createdAt, trabajador: sale.employee || '', producto: sale.productName || '',
+        cantidad: Number(sale.quantity || 1), precioUnitario: Number(sale.unitPrice || 0), precio: Number(sale.price || 0)
+      }));
+    }
+    const result = await localReports.exportReportFromTemplate(rows, { sheetName, summary, productRows: authoritativeProductRows });
     let buf;
     let filename = 'reporte.xlsx';
     if (result && result.buffer) {
