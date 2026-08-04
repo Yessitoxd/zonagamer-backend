@@ -682,7 +682,7 @@
 
 
     let consoles = [];
-    let prices = { ps5: {}, switch: {} };
+    let prices = { ps5: [], switch: [] };
     let products = [];
     let employees = [];
 
@@ -694,14 +694,16 @@
     async function fetchPrices() {
         const res = await fetch('https://zonagamer-backend.onrender.com/prices');
         const pricesArray = await res.json();
-        prices = { ps5: {}, switch: {} };
+        prices = { ps5: [], switch: [] };
         pricesArray.forEach(p => {
             if (p.console && p.duration && typeof p.price !== 'undefined') {
-                if (!prices[p.console]) prices[p.console] = {};
-                prices[p.console][p.duration] = {
+                if (!prices[p.console]) prices[p.console] = [];
+                prices[p.console].push({
+                    id: p._id || `${p.console}-${p.duration}-${p.price}-${p.label || ''}`,
+                    duration: Number(p.duration),
                     price: Number(p.price) || 0,
                     label: (p.label || '').toString().trim()
-                };
+                });
             }
         });
     }
@@ -841,21 +843,19 @@
             timeSelect.innerHTML = '';
             timeSelect.appendChild(defaultOption);
 
-            const consolePrices = prices[consoleType] || {};
-            const sortedPricesKeys = Object.keys(consolePrices).sort((a, b) => parseFloat(a) - parseFloat(b));
-
-            sortedPricesKeys.forEach(minutes => {
-                const option = document.createElement('option');
-                const mins = parseFloat(minutes);
-                const secondsValue = Math.round(mins * 60);
-                const entry = consolePrices[minutes] || {};
-                const finalPrice = (typeof entry === 'object') ? entry.price : entry;
-                const finalLabel = (typeof entry === 'object') ? entry.label : '';
-                option.value = secondsValue;
-                option.dataset.price = Number(finalPrice) || 0;
-                option.textContent = finalLabel || formatDuration(minutes);
-                timeSelect.appendChild(option);
-            });
+            const consolePrices = Array.isArray(prices[consoleType]) ? prices[consoleType] : [];
+            consolePrices
+                .slice()
+                .sort((a, b) => Number(a.duration) - Number(b.duration) || Number(a.price) - Number(b.price))
+                .forEach(entry => {
+                    const option = document.createElement('option');
+                    const secondsValue = Math.round(Number(entry.duration) * 60);
+                    // El id evita que dos promociones de la misma duración se sobrescriban.
+                    option.value = `${secondsValue}:${entry.id}`;
+                    option.dataset.price = Number(entry.price) || 0;
+                    option.textContent = `${entry.label || formatDuration(entry.duration)} — C$ ${Number(entry.price) || 0}`;
+                    timeSelect.appendChild(option);
+                });
             if (window.isOwner) {
                 const customOption = document.createElement('option');
                 customOption.value = 'custom';
