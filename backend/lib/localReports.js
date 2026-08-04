@@ -18,7 +18,7 @@ async function exportReportFromTemplate(rows, options = {}) {
       if (iso instanceof Date) {
         const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Managua', day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(iso);
         const pick = type => parts.find(part => part.type === type)?.value || '';
-        return `-${pick('month')}-${pick('year')}`;
+        return `${pick('day')}-${pick('month')}-${pick('year')}`;
       }
       if (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
         const [y, m, d] = iso.split('-');
