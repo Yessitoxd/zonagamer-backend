@@ -879,8 +879,8 @@ app.get('/product-sales', async (req, res) => {
     const { start, end } = req.query || {};
     const filter = {};
     if (start || end) {
-      const from = start ? new Date(`${start}T00:00:00.000Z`) : null;
-      const to = end ? new Date(`${end}T23:59:59.999Z`) : null;
+      const from = start ? new Date(`${start}T00:00:00.000-06:00`) : null;
+      const to = end ? new Date(`${end}T23:59:59.999-06:00`) : null;
       if (from || to) {
         filter.createdAt = {};
         if (from && !isNaN(from.getTime())) filter.createdAt.$gte = from.toISOString();
