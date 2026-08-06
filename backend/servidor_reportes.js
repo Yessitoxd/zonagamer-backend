@@ -304,6 +304,8 @@ const productSaleSchema = new mongoose.Schema({
   quantity: { type: Number, default: 1 },
   unitPrice: { type: Number, default: 0 },
   price: { type: Number, required: true },
+  consoleType: { type: String, default: '' },
+  consoleNumber: { type: Number, default: null },
   createdAt: { type: String, required: true }
 });
 const ProductSale = mongoose.model('ProductSale', productSaleSchema);
@@ -885,6 +887,44 @@ app.post('/product-sales', async (req, res) => {
   } catch (err) {
     console.error('Error al guardar venta de producto:', err);
     res.status(500).json({ error: 'Error al guardar venta de producto' });
+  }
+});
+
+app.post('/product-sales/bulk', async (req, res) => {
+  try {
+    const sales = req.body && Array.isArray(req.body.sales) ? req.body.sales : [];
+    if (!sales.length) return res.status(400).json({ error: 'No hay consumos para guardar' });
+    const employeeFromSession = session && session.username ? session.username : '';
+    const createdAt = new Date().toISOString();
+    const documents = sales.map(body => {
+      const quantity = Math.floor(Number(body.quantity || 1));
+      const unitPrice = Number(typeof body.unitPrice !== 'undefined' ? body.unitPrice : body.price);
+      if (!body.productName || !body.description || !Number.isFinite(quantity) ||
+          quantity < 1 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+        const error = new Error('Consumo inválido');
+        error.statusCode = 400;
+        throw error;
+      }
+      return {
+        employee: body.employee || employeeFromSession || '',
+        productId: body.productId || '',
+        productName: String(body.productName).trim(),
+        description: String(body.description).trim(),
+        quantity,
+        unitPrice: Number(unitPrice.toFixed(2)),
+        price: Number((unitPrice * quantity).toFixed(2)),
+        consoleType: String(body.consoleType || ''),
+        consoleNumber: Number(body.consoleNumber) || null,
+        createdAt
+      };
+    });
+    const inserted = await ProductSale.insertMany(documents, { ordered: true });
+    res.status(201).json({ ok: true, sales: inserted });
+  } catch (err) {
+    console.error('Error al guardar consumos en lote:', err);
+    res.status(err.statusCode || 500).json({
+      error: err.statusCode === 400 ? err.message : 'Error al guardar los consumos'
+    });
   }
 });
 
